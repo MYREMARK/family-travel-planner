@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import "./globals.css";
-import { Navbar }      from "@/components/layout/Navbar";
-import { BottomNav }   from "@/components/BottomNav";
-import { PwaRegister } from "@/components/PwaRegister";
+import { Navbar }           from "@/components/layout/Navbar";
+import { BottomNav }        from "@/components/BottomNav";
+import { PwaRegister }      from "@/components/PwaRegister";
+import { TravelAssistant }  from "@/components/TravelAssistant";
 
 const rubik = Rubik({
   subsets: ["latin", "hebrew"],
@@ -67,6 +68,7 @@ export default function RootLayout({
           </footer>
         </main>
         <BottomNav />
+        <TravelAssistant />
       </body>
     </html>
   );

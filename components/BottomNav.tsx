@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Hotel, Utensils, CalendarDays, CheckSquare, Settings } from "lucide-react";
+import { LayoutDashboard, Hotel, Utensils, Compass, CheckSquare, Wallet, Map, Settings } from "lucide-react";
 
 const tabs = [
   { href: "/",            label: "בית",       Icon: LayoutDashboard },
   { href: "/hotels",      label: "מלונות",    Icon: Hotel           },
   { href: "/restaurants", label: "מסעדות",    Icon: Utensils        },
-  { href: "/planner",     label: "מסלול",     Icon: CalendarDays    },
+  { href: "/planner",     label: "אטרקציות",  Icon: Compass         },
   { href: "/checklist",   label: "צ'קליסט",  Icon: CheckSquare     },
+  { href: "/budget",      label: "תקציב",     Icon: Wallet          },
+  { href: "/map",         label: "מפה",       Icon: Map             },
   { href: "/settings",    label: "הגדרות",    Icon: Settings        },
 ];
 
@@ -34,16 +36,16 @@ export function BottomNav() {
             <Link
               key={href}
               href={href}
-              className="flex flex-1 flex-col items-center gap-0.5 py-3 transition-colors duration-150"
-              style={{ color: active ? "#171717" : "#a3a3a3", textDecoration: "none", minHeight: 56 }}
+              className="flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors duration-150"
+              style={{ color: active ? "#171717" : "#a3a3a3", textDecoration: "none", minHeight: 52 }}
             >
               <div
-                className="flex h-7 w-7 items-center justify-center rounded-xl transition-all duration-150"
+                className="flex h-6 w-6 items-center justify-center rounded-lg transition-all duration-150"
                 style={{ background: active ? "#f5f5f5" : "transparent" }}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
               </div>
-              <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, lineHeight: 1 }}>
+              <span style={{ fontSize: 9, fontWeight: active ? 700 : 400, lineHeight: 1 }}>
                 {label}
               </span>
             </Link>
