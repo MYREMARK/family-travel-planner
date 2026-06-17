@@ -1,0 +1,57 @@
+{
+  "name": "Family Travel Planner — Rhodes 2026",
+  "short_name": "Travel Planner",
+  "description": "Personal travel manager for Rhodes, Greece — Sep 2026",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#171717",
+  "orientation": "portrait-primary",
+  "lang": "he",
+  "dir": "rtl",
+  "categories": ["travel", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "סקירה",
+      "short_name": "Dashboard",
+      "description": "פתח את לוח הבקרה",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "צ'קליסט",
+      "short_name": "Checklist",
+      "description": "רשימת ארוז לטיול",
+      "url": "/checklist",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "מסלול",
+      "short_name": "Planner",
+      "description": "מסלול יומי",
+      "url": "/planner",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
