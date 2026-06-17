@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Hotel, Utensils, Compass, CheckSquare, Wallet, Map, Settings } from "lucide-react";
+import { LayoutDashboard, Hotel, Utensils, CheckSquare, Wallet, Clock, Map, Settings } from "lucide-react";
 
 const tabs = [
-  { href: "/",            label: "בית",       Icon: LayoutDashboard },
-  { href: "/hotels",      label: "מלונות",    Icon: Hotel           },
-  { href: "/restaurants", label: "מסעדות",    Icon: Utensils        },
-  { href: "/planner",     label: "אטרקציות",  Icon: Compass         },
-  { href: "/checklist",   label: "צ'קליסט",  Icon: CheckSquare     },
-  { href: "/budget",      label: "תקציב",     Icon: Wallet          },
-  { href: "/map",         label: "מפה",       Icon: Map             },
-  { href: "/settings",    label: "הגדרות",    Icon: Settings        },
+  { href: "/",            label: "בית",      Icon: LayoutDashboard },
+  { href: "/hotels",      label: "מלונות",   Icon: Hotel           },
+  { href: "/restaurants", label: "מסעדות",   Icon: Utensils        },
+  { href: "/checklist",   label: "ציסט",    Icon: CheckSquare     },
+  { href: "/budget",      label: "תקציב",    Icon: Wallet          },
+  { href: "/timeline",    label: "ציר",      Icon: Clock           },
+  { href: "/map",         label: "מפה",      Icon: Map             },
+  { href: "/settings",    label: "הגדרות",   Icon: Settings        },
 ];
 
 export function BottomNav() {

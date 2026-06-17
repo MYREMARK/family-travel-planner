@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Map, Hotel, UtensilsCrossed, CalendarDays, CheckSquare, LayoutDashboard } from "lucide-react";
+import { Map, Hotel, UtensilsCrossed, CalendarDays, CheckSquare, LayoutDashboard, Wallet, Clock } from "lucide-react";
 
 const links = [
-  { href: "/",            label: "סקירה",      Icon: LayoutDashboard },
-  { href: "/planner",     label: "מסלול",       Icon: CalendarDays    },
-  { href: "/map",         label: "מפה",         Icon: Map             },
-  { href: "/hotels",      label: "מלונות",      Icon: Hotel           },
-  { href: "/restaurants", label: "מסעדות",      Icon: UtensilsCrossed },
-  { href: "/checklist",   label: "Checklist",   Icon: CheckSquare     },
+  { href: "/",            label: "סקירה",    Icon: LayoutDashboard },
+  { href: "/hotels",      label: "מלונות",   Icon: Hotel           },
+  { href: "/restaurants", label: "מסעדות",   Icon: UtensilsCrossed },
+  { href: "/planner",     label: "אטרקציות", Icon: CalendarDays    },
+  { href: "/checklist",   label: "צ'קליסט", Icon: CheckSquare     },
+  { href: "/budget",      label: "תקציב",    Icon: Wallet          },
+  { href: "/timeline",    label: "ציר זמן",  Icon: Clock           },
+  { href: "/map",         label: "מפה",      Icon: Map             },
 ];
 
 export function Navbar() {
