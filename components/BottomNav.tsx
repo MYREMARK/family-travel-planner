@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, CalendarDays, Utensils, CheckSquare, Wallet, Settings } from "lucide-react";
 
 const tabs = [
-  { href: "/",            label: "בית",       Icon: LayoutDashboard },
-  { href: "/planner",     label: "מסלול",     Icon: CalendarDays    },
-  { href: "/restaurants", label: "מסעדות",    Icon: Utensils        },
-  { href: "/checklist",   label: "צ'קליסט",  Icon: CheckSquare     },
-  { href: "/budget",      label: "תקציב",     Icon: Wallet          },
-  { href: "/settings",    label: "הגדרות",    Icon: Settings        },
+  { href: "/",            label: "בית",      Icon: LayoutDashboard },
+  { href: "/planner",     label: "מסלול",    Icon: CalendarDays    },
+  { href: "/restaurants", label: "מסעדות",   Icon: Utensils        },
+  { href: "/checklist",   label: "צ'קליסט", Icon: CheckSquare     },
+  { href: "/budget",      label: "תקציב",    Icon: Wallet          },
+  { href: "/settings",    label: "הגדרות",   Icon: Settings        },
 ];
 
 export function BottomNav() {
@@ -20,30 +20,58 @@ export function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
       style={{
-        background: "rgba(255,255,255,0.96)",
-        backdropFilter: "blur(12px)",
-        borderTop: "1px solid #f0f0f0",
+        // High-opacity background for outdoor sunlight readability
+        background: "rgba(255,255,255,0.98)",
+        backdropFilter: "blur(16px)",
+        borderTop: "1.5px solid #d4d4d4",
+        boxShadow: "0 -2px 16px rgba(0,0,0,0.10)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
         fontFamily: "'Rubik', system-ui, sans-serif",
       }}
     >
-      <div className="flex">
+      <div className="flex" style={{ height: 68 }}>
         {tabs.map(({ href, label, Icon }) => {
           const active = pathname === href;
           return (
             <Link
               key={href}
               href={href}
-              className="flex flex-1 flex-col items-center gap-0.5 py-2 transition-colors duration-150"
-              style={{ color: active ? "#171717" : "#a3a3a3", textDecoration: "none", minHeight: 52 }}
+              // Full-height tap area — each tab is (screen width / 6) × 68px ≥ 48px touch target
+              className="flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-150"
+              style={{
+                color: active ? "#171717" : "#525252",
+                textDecoration: "none",
+                minHeight: 68,
+                minWidth: 44,
+              }}
             >
+              {/* Icon pill — 44×36 touch-friendly container, filled when active */}
               <div
-                className="flex h-6 w-6 items-center justify-center rounded-lg transition-all duration-150"
-                style={{ background: active ? "#f5f5f5" : "transparent" }}
+                className="flex items-center justify-center rounded-2xl transition-all duration-200"
+                style={{
+                  width: 44,
+                  height: 32,
+                  background: active ? "#171717" : "transparent",
+                }}
               >
-                <Icon className="h-4 w-4" />
+                <Icon
+                  style={{
+                    width: 22,
+                    height: 22,
+                    color: active ? "#ffffff" : "#525252",
+                  }}
+                />
               </div>
-              <span style={{ fontSize: 9, fontWeight: active ? 700 : 400, lineHeight: 1 }}>
+              {/* Label — 11px, high-contrast for outdoor readability */}
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: active ? 700 : 500,
+                  lineHeight: 1,
+                  color: active ? "#171717" : "#525252",
+                  letterSpacing: active ? "-0.01em" : "0",
+                }}
+              >
                 {label}
               </span>
             </Link>
