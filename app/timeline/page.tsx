@@ -15,7 +15,7 @@ type WorkflowState = Record<StepId, StepState>;
 const DEFAULT_WF: WorkflowState = {
   destination: { status: "complete", completionDate: "2026-05-01", pct: 100 },
   flights:     { status: "complete", completionDate: "2026-06-16", pct: 100 },
-  hotel:       { status: "current",  pct: 0 },
+  hotel:       { status: "complete", completionDate: "2026-06-18", pct: 100 },
   restaurants: { status: "locked",   pct: 0 },
   activities:  { status: "locked",   pct: 0 },
   packing:     { status: "locked",   pct: 0 },
@@ -75,7 +75,7 @@ function getMilestones(wf: WorkflowState): Milestone[] {
       icon: Hotel,
       status: wf.hotel.status === "complete" ? "done" : wf.hotel.status === "current" ? "current" : "future",
       color: "#3b82f6", bg: "#eff6ff",
-      note: "In Camera Art Boutique — עיר עתיקה",
+      note: "Avalon Boutique Hotel — New Town · הוזמן!",
     },
     {
       id: "restaurants-plan", label: "תכנון מסעדות",

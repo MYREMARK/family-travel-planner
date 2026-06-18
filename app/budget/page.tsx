@@ -35,7 +35,7 @@ interface BudgetState {
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 const DEFAULT_CATEGORIES: BudgetCategory[] = [
   { id: "flights",    label: "טיסות",    planned: 3992, color: "#7c3aed", purchased: true  },
-  { id: "hotel",      label: "מלון",     planned: 2896, color: "#3b82f6", purchased: false },
+  { id: "hotel",      label: "מלון",     planned: 2896, color: "#3b82f6", purchased: true  },
   { id: "food",       label: "אוכל",     planned: 1200, color: "#22c55e", purchased: false },
   { id: "transport",  label: "תחבורה",   planned: 300,  color: "#f59e0b", purchased: false },
   { id: "shopping",   label: "קניות",    planned: 1000, color: "#ec4899", purchased: false },
@@ -65,20 +65,20 @@ const fmtDate  = (iso: string) => new Date(iso).toLocaleDateString("he-IL", { da
 // ─── Hotel data ───────────────────────────────────────────────────────────────
 const HOTELS = [
   {
-    id: "in-camera", name: "In Camera Art Boutique", nameShort: "In Camera",
-    price: 435, ils: 1740, location: "עיר עתיקה",
-    distanceRestaurants: "1–3 דקות", distanceAttractions: "0 — בתוך העיר",
-    scores: { familyMatch: 95, wow: 93, value: 88, milkAllergy: 90 },
-    isPrimary: true,
-    bookingUrl: "https://www.booking.com/hotel/gr/in-camera-art-boutique-hotel.html",
-  },
-  {
     id: "avalon", name: "Avalon Boutique Hotel", nameShort: "Avalon",
     price: 390, ils: 1560, location: "New Town",
     distanceRestaurants: "8 דקות", distanceAttractions: "12 דקות",
     scores: { familyMatch: 88, wow: 87, value: 90, milkAllergy: 82 },
-    isPrimary: false,
+    isPrimary: true,
     bookingUrl: "https://www.booking.com/hotel/gr/avalon-boutique-rhodes.html",
+  },
+  {
+    id: "in-camera", name: "In Camera Art Boutique", nameShort: "In Camera",
+    price: 435, ils: 1740, location: "עיר עתיקה",
+    distanceRestaurants: "1–3 דקות", distanceAttractions: "0 — בתוך העיר",
+    scores: { familyMatch: 95, wow: 93, value: 88, milkAllergy: 90 },
+    isPrimary: false,
+    bookingUrl: "https://www.booking.com/hotel/gr/in-camera-art-boutique-hotel.html",
   },
 ] as const;
 
@@ -117,7 +117,7 @@ export default function BudgetPage() {
   const [showHotels,    setShowHotels]    = useState(true);
   const [editCatId,     setEditCatId]     = useState<string | null>(null);
   const [editVal,       setEditVal]       = useState("");
-  const [selectedHotel, setSelectedHotel] = useState<string>("in-camera");
+  const [selectedHotel, setSelectedHotel] = useState<string>("avalon");
   const [form, setForm] = useState({
     date: todayISO(), categoryId: "food", description: "", amount: "", notes: "",
   });
@@ -404,7 +404,7 @@ export default function BudgetPage() {
               <div className="mb-3 flex items-center justify-center gap-2 rounded-xl p-3" style={{ background: "#f5f5f5" }}>
                 <Wallet className="h-4 w-4 text-neutral-400" />
                 <span style={{ fontSize: 13, color: "#525252" }}>
-                  הפרש: <strong>€{Math.abs(HOTELS[0].price - HOTELS[1].price)}</strong> (₪{Math.abs(HOTELS[0].ils - HOTELS[1].ils).toLocaleString()}) לטובת Avalon
+                  הפרש: <strong>€{Math.abs(HOTELS[0].price - HOTELS[1].price)}</strong> (₪{Math.abs(HOTELS[0].ils - HOTELS[1].ils).toLocaleString()}) חסכון עם Avalon
                 </span>
               </div>
 
@@ -466,9 +466,9 @@ export default function BudgetPage() {
                 style={{ background: "#fef9ec", border: "1px solid #fde68a" }}>
                 <Star className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: "#ca8a04" }} />
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>המלצה: In Camera Art Boutique</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>הוזמן: Avalon Boutique Hotel</p>
                   <p style={{ fontSize: 13, color: "#a16207", lineHeight: 1.5 }}>
-                    ציון משפחה 95 מול 88, בלב העיר העתיקה, מסעדות 1 דקה. €45 יותר — שווה.
+                    New Town · ערך מצוין (90/100) · €390 לכל הטיול · 12 דקות הליכה לעיר העתיקה
                   </p>
                 </div>
               </div>

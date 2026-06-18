@@ -35,7 +35,7 @@ function loadContext(): TripContext {
   let completedSteps = 2;
   let currentStage   = "בחירת מלון";
   let budgetRemaining = 9888;
-  let selectedHotel   = "In Camera Art Boutique";
+  let selectedHotel   = "Avalon Boutique Hotel";
 
   try {
     const wf = JSON.parse(localStorage.getItem("ftp-workflow-v3") ?? "null");
@@ -72,7 +72,7 @@ function loadContext(): TripContext {
 export function TravelAssistant() {
   const [open, setOpen] = useState(false);
   const [ctx,  setCtx]  = useState<TripContext>({
-    daysLeft: 82, completedSteps: 2, budgetRemaining: 9888, currentStage: "בחירת מלון", selectedHotel: "In Camera Art Boutique",
+    daysLeft: 80, completedSteps: 3, budgetRemaining: 5396, currentStage: "מסעדות", selectedHotel: "Avalon Boutique Hotel",
   });
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -258,7 +258,7 @@ export function TravelAssistant() {
             <div className="rounded-2xl p-4" style={{ border: "1px solid #f0f0f0" }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: "#a3a3a3", marginBottom: 10 }}>המלצות מהירות</p>
               {[
-                { icon: Hotel,     text: "In Camera Boutique — לב העיר העתיקה" },
+                { icon: Hotel,     text: "Avalon Boutique Hotel — New Town, הוזמן!" },
                 { icon: Utensils,  text: "ONO — הטבעוני הכי טוב ברודוס" },
                 { icon: Compass,   text: "Knights Street — חובה עם הילדים" },
                 { icon: MapPin,    text: "Lindos — שעה ורבע נסיעה" },

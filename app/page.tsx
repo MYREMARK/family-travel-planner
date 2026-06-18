@@ -38,8 +38,8 @@ const STEP_ORDER = STEP_DEFS.map(s => s.id);
 const DEFAULT_WORKFLOW: WorkflowState = {
   destination: { status: "complete", completionDate: "2026-05-01", pct: 100 },
   flights:     { status: "complete", completionDate: "2026-06-16", pct: 100 },
-  hotel:       { status: "current",  pct: 0 },
-  restaurants: { status: "locked",   pct: 0 },
+  hotel:       { status: "complete", completionDate: "2026-06-18", pct: 100 },
+  restaurants: { status: "current",  pct: 0 },
   activities:  { status: "locked",   pct: 0 },
   packing:     { status: "locked",   pct: 0 },
   ready:       { status: "locked",   pct: 0 },
@@ -324,22 +324,26 @@ function RestaurantStage({ onComplete }: { onComplete: () => void }) {
       <div>
         <h2 style={{ fontSize: 28, fontWeight: 800, color: "#171717", marginBottom: 6 }}>איפה אוכלים?</h2>
         <p style={{ fontSize: 17, lineHeight: 1.6, color: "#525252" }}>
-          כל המסעדות 100% טבעוניות ובטוחות לאלרגיה לחלב.
+          9 מסעדות נבחרו עבורכם — 100% טבעוניות ובטוחות לאלרגיה לחלב. מרחקים מ-Avalon.
         </p>
         <div className="mt-3 flex items-center gap-2 rounded-xl p-3" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
           <Leaf className="h-4 w-4 text-green-600" />
-          <span style={{ fontSize: 15, color: "#15803d", fontWeight: 500 }}>כל 4 המסעדות — 100% vegan, ללא חלב</span>
+          <span style={{ fontSize: 15, color: "#15803d", fontWeight: 500 }}>כל המסעדות — ציון אלרגיה לחלב 75+</span>
         </div>
-      </div>
-
-      <div className="space-y-4">
-        {planningRestaurants.map(r => <RestaurantCard key={r.id} r={r} />)}
       </div>
 
       <div className="rounded-2xl p-5" style={{ background: "#fafafa", border: "1px solid #e5e5e5" }}>
         <p style={{ fontSize: 15, color: "#737373", marginBottom: 12 }}>
-          ראו את <Link href="/planner" className="underline" style={{ color: "#171717" }}>המסלול המלא</Link> עם כל המסעדות ושעות.
+          המסעדות עברו לטאב הייעודי עם מפה ואפשרות ניווט.
         </p>
+        <Link href="/restaurants"
+          className="block w-full cursor-pointer rounded-2xl py-3.5 text-center transition-opacity hover:opacity-80"
+          style={{ background: "#7c3aed", fontSize: 16, fontWeight: 700, color: "#fff", textDecoration: "none" }}>
+          ראה את כל המסעדות ←
+        </Link>
+      </div>
+
+      <div className="rounded-2xl p-5" style={{ background: "#fff", border: "1px solid #e5e5e5" }}>
         <button onClick={onComplete}
           className="w-full cursor-pointer rounded-2xl py-3.5 transition-opacity hover:opacity-80"
           style={{ background: "#171717", fontSize: 16, fontWeight: 700, color: "#fff", border: "none" }}>

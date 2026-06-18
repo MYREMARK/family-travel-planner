@@ -1,289 +1,704 @@
 "use client";
 
 import { useState } from "react";
-import { itinerary } from "@/data/rhodes";
 import {
-  MapPin, Clock, ShieldAlert, Utensils, Landmark,
-  Waves, Bus, ShoppingBag, ChevronLeft,
-  ExternalLink, Leaf, AlertTriangle, ArrowLeft,
+  Plane, Hotel, Utensils, Compass, Camera, ShoppingBag,
+  Star, Moon, Sun, Sunset, Coffee, MapPin, Navigation,
+  Clock, AlertCircle, Leaf, Music, BookOpen, Telescope,
+  DollarSign, Tag, ChevronDown, ChevronUp,
 } from "lucide-react";
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-const EVENT_META = {
-  restaurant: { Icon: Utensils,    color: "#16a34a", bg: "#f0fdf4", label: "מסעדה"   },
-  attraction: { Icon: Landmark,    color: "#7c3aed", bg: "#f5f3ff", label: "אטרקציה" },
-  beach:      { Icon: Waves,       color: "#0284c7", bg: "#f0f9ff", label: "חוף"      },
-  transport:  { Icon: Bus,         color: "#525252", bg: "#fafafa", label: "תחבורה"   },
-  activity:   { Icon: ShoppingBag, color: "#b45309", bg: "#fffbeb", label: "פעילות"   },
-} as const;
+// ─── Itinerary data ───────────────────────────────────────────────────────────
+// Hotel: Avalon Boutique Hotel, New Town — 12 min walk to Old Town
+const DAYS = [
+  {
+    day: 1,
+    date: "ספטמבר 7, 2026",
+    dayLabel: "יום ראשון",
+    title: "יום הגעה — קל ומרגיע",
+    subtitle: "טיסה מוקדמת, התאקלמות, עיר עתיקה בסיוב",
+    color: "#7c3aed",
+    bg: "#f5f3ff",
+    events: [
+      {
+        time: "05:20",
+        label: "טיסה מ-TLV",
+        detail: "אל-על TLV → RHO · הגעו לשדה תעופה לפחות שעה לפני",
+        icon: Plane,
+        type: "flight",
+        tags: ["חובה"],
+        cost: "כלול",
+        tip: "צ'ק אין אונליין ב-6 ספטמבר! תרופות אלרגיה בתיק יד.",
+      },
+      {
+        time: "07:05",
+        label: "נחיתה ברודוס",
+        detail: "נמל תעופה רודוס (RHO) · Diagoras Airport",
+        icon: Plane,
+        type: "flight",
+        tags: [],
+        cost: null,
+        tip: "מונית לAvalon: ~€15, 20 דקות",
+      },
+      {
+        time: "08:00",
+        label: "ארוחת בוקר — Annie's Vegan Kitchen",
+        detail: "3 דקות מהמלון · Açaí bowl, קפה, מאפים טבעוניים",
+        icon: Coffee,
+        type: "food",
+        tags: ["טבעוני 100%", "קרוב למלון"],
+        cost: "₪40 לאדם",
+        veganFriendly: true,
+        tip: "בקשו את ה-Açaí bowl עם חלב שקדים",
+      },
+      {
+        time: "09:30",
+        label: "סיוב ראשון — עיר עתיקה",
+        detail: "הליכה קלה ברחובות ימי-הביניים · 12 דקות מהמלון",
+        icon: Compass,
+        type: "activity",
+        tags: ["חינם", "Harry Potter vibes"],
+        cost: "חינם",
+        tip: "הרחובות הצרים של Knights Street — בדיוק כמו Diagon Alley!",
+        harryPotter: true,
+      },
+      {
+        time: "11:00",
+        label: "קניות — ניו טאון",
+        detail: "Zara, Bershka, Pull&Bear, Stradivarius · כל הרשתות באזור אחד",
+        icon: ShoppingBag,
+        type: "shopping",
+        tags: ["Y2K Fashion", "Grunge"],
+        cost: "לפי קניות",
+        tip: "כולם ברחוב Mandraki — פחות מ-10 דקות מהמלון",
+      },
+      {
+        time: "13:00",
+        label: "ארוחת צהריים — T Veg",
+        detail: "5 דקות מהמלון · Burger טבעוני, סלטים",
+        icon: Utensils,
+        type: "food",
+        tags: ["טבעוני", "מחיר נגיש"],
+        cost: "₪55 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "14:00",
+        label: "צ'ק אין — Avalon Boutique Hotel",
+        detail: "New Town · 3 לילות",
+        icon: Hotel,
+        type: "hotel",
+        tags: ["הוזמן"],
+        cost: "כלול",
+        tip: "אם אין חדר עדיין — השאירו מזוודות ובקשו early check-in",
+      },
+      {
+        time: "15:30",
+        label: "מנוחה + נמנום",
+        detail: "חשוב! יצאתם מוקדם מאוד — מנוחה לפני הערב",
+        icon: Moon,
+        type: "rest",
+        tags: ["חשוב"],
+        cost: null,
+      },
+      {
+        time: "18:30",
+        label: "הליכת ערב — חומות העיר העתיקה",
+        detail: "12 דקות הליכה · טיול קצר על שפת הנמל",
+        icon: Compass,
+        type: "activity",
+        tags: ["חינם", "רומנטי"],
+        cost: "חינם",
+      },
+      {
+        time: "19:30",
+        label: "שקיעה — Palace of Grand Masters",
+        detail: "הנקודה הכי יפה לשקיעה ביום הראשון",
+        icon: Sun,
+        type: "activity",
+        tags: ["חינם", "Photography"],
+        cost: "חינם",
+        tip: "הכינו מצלמה — הצבעים מדהימים",
+      },
+      {
+        time: "20:30",
+        label: "ארוחת ערב — ONO Greek Fusion",
+        detail: "14 דקות מהמלון · עיר עתיקה · הזמינו מקום מראש!",
+        icon: Utensils,
+        type: "food",
+        tags: ["WOW", "טבעוני"],
+        cost: "₪120 לאדם",
+        veganFriendly: true,
+        tip: "הכי מומלצת! בקשו ישיבה בפנים לאווירה מיוחדת",
+      },
+    ],
+  },
+  {
+    day: 2,
+    date: "ספטמבר 8, 2026",
+    dayLabel: "יום שני",
+    title: "Lindos — יום ה-WOW",
+    subtitle: "האקרופוליס, המפרץ הכחול, צילום, קניות",
+    color: "#0284c7",
+    bg: "#f0f9ff",
+    events: [
+      {
+        time: "07:30",
+        label: "ארוחת בוקר מוקדמת",
+        detail: "Old Market Café · 13 דקות מהמלון · Açaí + קפה",
+        icon: Coffee,
+        type: "food",
+        tags: ["מוקדם", "טבעוני"],
+        cost: "₪35 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "08:30",
+        label: "נסיעה ל-Lindos",
+        detail: "אוטובוס מתחנה מרכזית (€3 לנפש) · 55 דקות · או מונית €35",
+        icon: MapPin,
+        type: "transport",
+        tags: ["55 ק\"מ", "€3 באוטובוס"],
+        cost: "€3 באוטובוס / €35 מונית",
+        tip: "אוטובוס 015 · יוצא כל שעה מהתחנה המרכזית",
+      },
+      {
+        time: "09:30",
+        label: "Acropolis of Lindos",
+        detail: "עלייה לאקרופוליס · נוף פנורמי מדהים · גרם מדרגות",
+        icon: Compass,
+        type: "activity",
+        tags: ["WOW", "Photography", "היסטוריה"],
+        cost: "€6 לאדם (ילדים חינם)",
+        tip: "הגיעו מוקדם לפני הצהרון — צל מועט בשעות החמות",
+        wow: true,
+      },
+      {
+        time: "11:00",
+        label: "St Paul's Bay — חוף נסתר",
+        detail: "מפרץ הגעה של פאולוס השליח · מים טורקיז שקופים",
+        icon: Sunset,
+        type: "activity",
+        tags: ["חוף", "שחייה", "Photography"],
+        cost: "חינם",
+        tip: "הכי יפה בשעות הבוקר — מים שקטים",
+        wow: true,
+      },
+      {
+        time: "12:30",
+        label: "קניות בכפר לינדוס",
+        detail: "חנויות Y2K, מזכרות, אמנות מקומית · רחובות לבנים",
+        icon: ShoppingBag,
+        type: "shopping",
+        tags: ["Y2K", "מזכרות"],
+        cost: "לפי קניות",
+        tip: "חנויות ה-vintage בכפר — Y2K vibes אמיתיים",
+      },
+      {
+        time: "13:30",
+        label: "ארוחת צהריים — Kalypso Roof Garden",
+        detail: "נוף פנורמי ללינדוס · תפריט מדיטרני",
+        icon: Utensils,
+        type: "food",
+        tags: ["נוף WOW", "מדיטרני"],
+        cost: "₪90 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "15:00",
+        label: "ריף שחייה + Beach Time",
+        detail: "Lindos Beach · חוף עם מים כחולים שקופים",
+        icon: Sun,
+        type: "activity",
+        tags: ["חוף", "שחייה", "מנוחה"],
+        cost: "שכירת כיסא: €8",
+      },
+      {
+        time: "17:00",
+        label: "חזרה לרודוס",
+        detail: "אוטובוס 015 חזרה · 55 דקות",
+        icon: MapPin,
+        type: "transport",
+        tags: ["€3"],
+        cost: "€3 באוטובוס",
+      },
+      {
+        time: "19:00",
+        label: "שקיעה — נמל מנדרקי",
+        detail: "נמל הצבאים האגדי · הכי יפה לצילום שקיעה",
+        icon: Camera,
+        type: "activity",
+        tags: ["Photography", "K-Pop vibes", "חינם"],
+        cost: "חינם",
+        tip: "רקע מושלם לצילומים K-Pop aesthetic!",
+        kpop: true,
+      },
+      {
+        time: "20:30",
+        label: "ארוחת ערב — RuBisCo Fine Dining",
+        detail: "15 דקות מהמלון · עיר עתיקה · הזמינו מראש",
+        icon: Utensils,
+        type: "food",
+        tags: ["Fine Dining", "טבעוני"],
+        cost: "₪160 לאדם",
+        veganFriendly: true,
+        tip: "ארוחת הגאלה של הטיול — מומלץ לבוא בסטייל!",
+      },
+    ],
+  },
+  {
+    day: 3,
+    date: "ספטמבר 9, 2026",
+    dayLabel: "יום שלישי",
+    title: "טבע, תרבות וכוכבים",
+    subtitle: "פרפרים, מוזיאון, Harry Potter streets, ספירת כוכבים",
+    color: "#16a34a",
+    bg: "#f0fdf4",
+    events: [
+      {
+        time: "08:00",
+        label: "ארוחת בוקר — Platanos",
+        detail: "6 דקות מהמלון · תחת עץ פלטנוס עתיק",
+        icon: Coffee,
+        type: "food",
+        tags: ["יווני", "חוויה"],
+        cost: "₪50 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "09:00",
+        label: "Valley of the Butterflies",
+        detail: "25 ק\"מ · אוטובוס €4 · עמק ירוק עם אלפי פרפרים · קיר! בקרו בשקט",
+        icon: Leaf,
+        type: "activity",
+        tags: ["טבע", "ייחודי", "משפחה"],
+        cost: "€5 כניסה · €4 אוטובוס",
+        tip: "חובה לשמור על שקט — פרפרים מגיבים לרעש. קיר מרשים!",
+        wow: true,
+        valueNote: "חוויה ייחודית שלא ניתן לחוות בחינם — שווה את הכסף",
+      },
+      {
+        time: "11:30",
+        label: "Profitis Ilias Mountain",
+        detail: "דרך ל-Valley — נוף לכל האי · עצי אורן · מקום לצילום כוכבים לילה",
+        icon: Telescope,
+        type: "activity",
+        tags: ["Astronomy", "נוף", "כוכבים"],
+        cost: "חינם",
+        tip: "סמנו את המקום לחזרה הלילה לצפייה בכוכבים!",
+      },
+      {
+        time: "13:00",
+        label: "חזרה לרודוס — ארוחת צהריים Annie's",
+        detail: "3 דקות מהמלון · המסעדה הטבעונית הטובה ביותר",
+        icon: Utensils,
+        type: "food",
+        tags: ["טבעוני 100%", "קרוב"],
+        cost: "₪45 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "14:30",
+        label: "Medieval Rhodes Museum",
+        detail: "עיר עתיקה · 13 דקות · ארמון האבירים + ארכאולוגיה",
+        icon: BookOpen,
+        type: "activity",
+        tags: ["היסטוריה", "Harry Potter", "תרבות"],
+        cost: "€6 לאדם",
+        tip: "הארמון מרגיש כמו Hogwarts! נועם ומעיין יאהבו",
+        harryPotter: true,
+      },
+      {
+        time: "16:00",
+        label: "Knights Street — Harry Potter Walk",
+        detail: "הרחוב הכי יפה ברודוס · אבן מדרכות עתיקה · בדיוק כמו Diagon Alley",
+        icon: Compass,
+        type: "activity",
+        tags: ["חינם", "Harry Potter", "Photography"],
+        cost: "חינם",
+        tip: "הצטלמו בכניסה לסמטאות — vibes שלמים של Diagon Alley!",
+        harryPotter: true,
+        wow: true,
+      },
+      {
+        time: "17:30",
+        label: "קניות — Y2K & Grunge",
+        detail: "Bershka + Pull&Bear + Stradivarius · כולם ב-Mandraki",
+        icon: ShoppingBag,
+        type: "shopping",
+        tags: ["Y2K", "Grunge", "Fashion"],
+        cost: "לפי קניות",
+      },
+      {
+        time: "19:30",
+        label: "ארוחת ערב — Meltemi Tavern",
+        detail: "16 דקות מהמלון · עיר עתיקה · נוף לחומות",
+        icon: Utensils,
+        type: "food",
+        tags: ["מסורתי", "נוף"],
+        cost: "₪80 לאדם",
+        veganFriendly: true,
+        tip: "בקשו \"Χωρίς γαλακτοκομικά\" — ללא מוצרי חלב",
+      },
+      {
+        time: "22:00",
+        label: "ספירת כוכבים — Mandraki Harbour",
+        detail: "ספטמבר = שמיים נהדרים · תצורות כוכבים מדיטרניות",
+        icon: Telescope,
+        type: "activity",
+        tags: ["Astronomy", "לילה", "רומנטי"],
+        cost: "חינם",
+        tip: "הכינו אפליקציית Star Walk 2! ספטמבר = Milky Way גלוי",
+        astronomy: true,
+        wow: true,
+      },
+    ],
+  },
+  {
+    day: 4,
+    date: "ספטמבר 10, 2026",
+    dayLabel: "יום רביעי",
+    title: "יום עזיבה — גמישות מלאה",
+    subtitle: "קניות אחרונות, חוף אחרון, טיסה הביתה",
+    color: "#ca8a04",
+    bg: "#fef9ec",
+    events: [
+      {
+        time: "08:00",
+        label: "ארוחת בוקר אחרונה",
+        detail: "Annie's Vegan Kitchen · הפעם בישיבה ארוכה — פינוק אחרון",
+        icon: Coffee,
+        type: "food",
+        tags: ["טבעוני", "אחרון"],
+        cost: "₪40 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "09:30",
+        label: "קניות אחרונות",
+        detail: "Zara + מזכרות אחרונות · מה ששכחתם",
+        icon: ShoppingBag,
+        type: "shopping",
+        tags: ["קניות", "מזכרות"],
+        cost: "לפי קניות",
+      },
+      {
+        time: "11:00",
+        label: "חוף ניו טאון — Elli Beach",
+        detail: "800 מטר מהמלון · חוף עירוני ציבורי · שחייה אחרונה",
+        icon: Sun,
+        type: "activity",
+        tags: ["חוף", "חינם", "שחייה"],
+        cost: "חינם",
+        tip: "Elli Beach — החוף הנגיש ביותר מהמלון, 10 דקות הליכה",
+      },
+      {
+        time: "13:00",
+        label: "ארוחת צהריים קלה",
+        detail: "T Veg · 5 דקות מהמלון · פשוט ומהיר",
+        icon: Utensils,
+        type: "food",
+        tags: ["מהיר", "טבעוני"],
+        cost: "₪40 לאדם",
+        veganFriendly: true,
+      },
+      {
+        time: "14:30",
+        label: "צ'ק אאוט + מונית לשדה תעופה",
+        detail: "בדקו שעת הטיסה · מונית ~€15 · 20 דקות",
+        icon: Plane,
+        type: "flight",
+        tags: ["חשוב"],
+        cost: "€15 מונית",
+        tip: "הגיעו 90 דקות לפני שעת הטיסה",
+      },
+    ],
+  },
+];
 
-function mapsUrl(lat: number, lng: number, title: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(title)}&center=${lat},${lng}`;
-}
+const SHOPPING_STORES = [
+  { name: "Zara",         area: "ניו טאון",   distance: "8 דקות",  style: "Y2K Fashion",   mapsUrl: "https://maps.google.com/?q=Zara+Rhodes+Greece" },
+  { name: "Bershka",      area: "ניו טאון",   distance: "9 דקות",  style: "Y2K + Grunge",  mapsUrl: "https://maps.google.com/?q=Bershka+Rhodes+Greece" },
+  { name: "Pull&Bear",    area: "ניו טאון",   distance: "9 דקות",  style: "Grunge + Street", mapsUrl: "https://maps.google.com/?q=Pull+and+Bear+Rhodes+Greece" },
+  { name: "Stradivarius", area: "ניו טאון",   distance: "10 דקות", style: "Y2K + Boho",    mapsUrl: "https://maps.google.com/?q=Stradivarius+Rhodes+Greece" },
+  { name: "H&M",          area: "ניו טאון",   distance: "7 דקות",  style: "Y2K Budget",    mapsUrl: "https://maps.google.com/?q=H%26M+Rhodes+Greece" },
+  { name: "New Yorker",   area: "ניו טאון",   distance: "8 דקות",  style: "Y2K + Grunge",  mapsUrl: "https://maps.google.com/?q=New+Yorker+Rhodes+Greece" },
+  { name: "Vintage Shops", area: "עיר עתיקה", distance: "15 דקות", style: "Vintage Y2K",   mapsUrl: "https://maps.google.com/?q=vintage+shops+Rhodes+Old+Town" },
+];
 
-function BudgetBar({ cost, max }: { cost: number; max: number }) {
-  const pct = Math.min(100, Math.round((cost / max) * 100));
-  const color = pct > 100 ? "#dc2626" : pct > 85 ? "#ca8a04" : "#16a34a";
+// ─── Event type colors ────────────────────────────────────────────────────────
+const TYPE_STYLE: Record<string, { color: string; bg: string }> = {
+  flight:    { color: "#7c3aed", bg: "#f5f3ff" },
+  food:      { color: "#16a34a", bg: "#f0fdf4" },
+  activity:  { color: "#0284c7", bg: "#eff6ff" },
+  shopping:  { color: "#ec4899", bg: "#fdf2f8" },
+  hotel:     { color: "#0284c7", bg: "#eff6ff" },
+  transport: { color: "#f59e0b", bg: "#fff7ed" },
+  rest:      { color: "#a3a3a3", bg: "#fafafa" },
+};
+
+// ─── Sub components ───────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function EventRow({ e }: { e: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const s = TYPE_STYLE[e.type as string] ?? TYPE_STYLE.activity;
+  const Icon = e.icon as React.FC<{ className?: string; style?: React.CSSProperties }>;
+  const hasExtra = e.tip || e.valueNote;
+
   return (
-    <div>
-      <div className="mb-1.5 flex justify-between">
-        <span style={{ fontSize: 16, color: "#737373" }}>עלות יום</span>
-        <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>
-          €{cost} <span style={{ fontWeight: 400, color: "#a3a3a3" }}>/ €{max}</span>
+    <div className="flex gap-3">
+      {/* Time + line */}
+      <div className="flex flex-col items-center">
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#a3a3a3", minWidth: 44, textAlign: "center" }}>
+          {e.time}
         </span>
+        <div className="mt-1 flex-1 w-px bg-neutral-100" />
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
-        <div
-          className="h-2 rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
+
+      {/* Card */}
+      <div className="mb-2 flex-1 overflow-hidden rounded-2xl transition-shadow hover:shadow-sm"
+        style={{ border: "1px solid #f0f0f0", background: "#fff" }}>
+        <div className="p-3">
+          <div className="flex items-start gap-2.5">
+            {/* Icon */}
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"
+              style={{ background: s.bg }}>
+              <Icon className="h-4 w-4" style={{ color: s.color }} />
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{e.label}</span>
+                    {e.wow && <Star className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#ca8a04" }} />}
+                    {e.harryPotter && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#7c3aed22", color: "#7c3aed" }}>HP</span>}
+                    {e.kpop && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#ec489922", color: "#ec4899" }}>K-Pop</span>}
+                    {e.astronomy && <Telescope className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#0284c7" }} />}
+                    {e.veganFriendly && <Leaf className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />}
+                  </div>
+                  <p style={{ fontSize: 13, color: "#737373", marginTop: 2, lineHeight: 1.4 }}>{e.detail}</p>
+                </div>
+                {/* Cost */}
+                {e.cost && (
+                  <span className="flex-shrink-0 rounded-xl px-2 py-1"
+                    style={{ fontSize: 11, fontWeight: 700, background: e.cost === "חינם" ? "#f0fdf4" : "#f5f5f5",
+                      color: e.cost === "חינם" ? "#16a34a" : "#525252" }}>
+                    {e.cost}
+                  </span>
+                )}
+              </div>
+
+              {/* Tags */}
+              {e.tags && e.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {e.tags.map((t: string) => (
+                    <span key={t} className="rounded-full px-2 py-0.5"
+                      style={{ fontSize: 10, fontWeight: 600, background: "#f5f5f5", color: "#525252" }}>
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Tip (collapsed) */}
+              {hasExtra && (
+                <div>
+                  <button onClick={() => setExpanded(v => !v)}
+                    className="mt-2 flex cursor-pointer items-center gap-1 text-left transition-colors hover:opacity-70"
+                    style={{ fontSize: 12, color: "#a3a3a3", background: "none", border: "none", padding: 0 }}>
+                    {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    {expanded ? "פחות" : "טיפ"}
+                  </button>
+                  {expanded && e.tip && (
+                    <div className="mt-2 flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fef9ec" }}>
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#ca8a04" }} />
+                      <span style={{ fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>{e.tip}</span>
+                    </div>
+                  )}
+                  {expanded && e.valueNote && (
+                    <div className="mt-2 flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#f0fdf4" }}>
+                      <Tag className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-green-600" />
+                      <span style={{ fontSize: 12, color: "#15803d", lineHeight: 1.5 }}>{e.valueNote}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── page ─────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PlannerPage() {
   const [activeDay, setActiveDay] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data = itinerary as any[];
-  const day  = data[activeDay];
-  const events: any[] = day.events ?? [];
+  const [showShopping, setShowShopping] = useState(false);
 
-  const veganCount   = events.filter((e: any) => e.type === "restaurant" && String(e.allergyNote ?? "").includes("✅")).length;
-  const warningCount = events.filter((e: any) => String(e.allergyNote ?? "").includes("⚠️")).length;
-
-  const totalCost  = data.reduce((s: number, d: any) => s + (d.estimatedCost ?? 0), 0);
-  const totalStops = data.flatMap((d: any) => d.events ?? []).length;
-  const totalVegan = data.flatMap((d: any) => d.events ?? []).filter((e: any) => String(e.allergyNote ?? "").includes("✅")).length;
+  const day = DAYS[activeDay];
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Rubik', system-ui, sans-serif" }}>
-      <div className="mx-auto max-w-2xl px-6 pb-24 pt-10">
+      <div className="mx-auto max-w-2xl px-4 pb-36 pt-10 space-y-6 md:max-w-3xl">
 
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <div className="mb-10">
-          <p style={{ fontSize: 16, color: "#a3a3a3", marginBottom: 8 }}>רודוס · יולי 2025</p>
-          <h1 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.1, color: "#171717", letterSpacing: "-0.02em", marginBottom: 10 }}>
-            המסלול המומלץ
+        {/* Header */}
+        <div>
+          <p style={{ fontSize: 15, color: "#a3a3a3", marginBottom: 4 }}>Avalon Boutique Hotel · ספטמבר 2026</p>
+          <h1 style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.1, color: "#171717", letterSpacing: "-0.02em" }}>
+            מסלול הטיול
           </h1>
-          <p style={{ fontSize: 18, lineHeight: 1.65, color: "#525252" }}>
-            5 ימים לאבא, נועם ומעיין — ללא טרקים, מתחיל אחרי 10:00, עם שקיעות,
-            Harry Potter vibes ומסעדות טבעוניות בכל יום.
-          </p>
         </div>
 
-        {/* ── Trip summary pills ───────────────────────────────────────── */}
-        <div className="mb-8 grid grid-cols-3 gap-3">
+        {/* Interest icons legend */}
+        <div className="flex flex-wrap gap-3 rounded-2xl p-4" style={{ background: "#fafafa", border: "1px solid #f0f0f0" }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "#737373", width: "100%", marginBottom: 4 }}>אייקוני תחומי עניין</p>
           {[
-            { val: `€${totalCost}`, label: "עלות כוללת" },
-            { val: `${totalStops}`, label: "עצירות" },
-            { val: `${totalVegan}`, label: "מסעדות מאושרות" },
-          ].map(({ val, label }) => (
-            <div key={label} className="rounded-2xl p-4 text-center" style={{ background: "#fafafa", border: "1px solid #f0f0f0" }}>
-              <p style={{ fontSize: 22, fontWeight: 800, color: "#171717", lineHeight: 1 }}>{val}</p>
-              <p style={{ fontSize: 14, color: "#a3a3a3", marginTop: 4 }}>{label}</p>
+            { icon: Star,      label: "WOW",       color: "#ca8a04" },
+            { icon: Music,     label: "K-Pop",      color: "#ec4899" },
+            { icon: BookOpen,  label: "Harry Potter", color: "#7c3aed" },
+            { icon: Telescope, label: "Astronomy",  color: "#0284c7" },
+            { icon: ShoppingBag, label: "Y2K/Grunge", color: "#16a34a" },
+            { icon: Leaf,      label: "טבעוני",    color: "#22c55e" },
+          ].map(({ icon: Icon, label, color }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <Icon className="h-3.5 w-3.5" style={{ color }} />
+              <span style={{ fontSize: 12, color: "#525252" }}>{label}</span>
             </div>
           ))}
         </div>
 
-        {/* ── Day tabs ────────────────────────────────────────────────── */}
-        <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
-          {itinerary.map((d, i) => (
-            <button
-              key={d.day}
-              onClick={() => setActiveDay(i)}
-              className="flex-shrink-0 cursor-pointer rounded-2xl px-4 py-3 text-right transition-all duration-200"
+        {/* Day selector */}
+        <div className="grid grid-cols-4 gap-2">
+          {DAYS.map((d, i) => (
+            <button key={d.day} onClick={() => setActiveDay(i)}
+              className="cursor-pointer rounded-2xl p-3 text-center transition-all hover:shadow-sm"
               style={{
-                background: i === activeDay ? "#171717" : "#f5f5f5",
-                color:      i === activeDay ? "#ffffff" : "#525252",
-                fontWeight: i === activeDay ? 700 : 500,
-                fontSize: 15,
-                border: "none",
-              }}
-            >
-              <span style={{ display: "block", fontSize: 12, opacity: 0.6, marginBottom: 2 }}>יום {d.day}</span>
-              {d.emoji} {d.title.split("—")[0].trim()}
+                border: `2px solid ${activeDay === i ? d.color : "#f0f0f0"}`,
+                background: activeDay === i ? d.bg : "#fff",
+              }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: activeDay === i ? d.color : "#a3a3a3", lineHeight: 1 }}>
+                יום {d.day}
+              </p>
+              <p style={{ fontSize: 10, color: activeDay === i ? d.color : "#d1d5db", marginTop: 2 }}>
+                {d.dayLabel.split(" ")[1] ?? d.dayLabel}
+              </p>
             </button>
           ))}
         </div>
 
-        {/* ── Day card ─────────────────────────────────────────────────── */}
-        <div className="mb-6 rounded-3xl bg-neutral-50 p-6">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <p style={{ fontSize: 14, color: "#a3a3a3", marginBottom: 4 }}>יום {day.day} מתוך 5</p>
-              <h2 style={{ fontSize: 24, fontWeight: 700, lineHeight: 1.25, color: "#171717" }}>
-                {day.emoji} {day.title}
-              </h2>
+        {/* Active day header */}
+        <div className="overflow-hidden rounded-3xl" style={{ background: "#171717" }}>
+          <div className="p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p style={{ fontSize: 13, color: "#737373", marginBottom: 3 }}>{day.date}</p>
+                <h2 style={{ fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>{day.title}</h2>
+                <p style={{ fontSize: 14, color: "#a3a3a3", marginTop: 4 }}>{day.subtitle}</p>
+              </div>
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
+                style={{ background: day.bg }}>
+                <span style={{ fontSize: 18, fontWeight: 900, color: day.color }}>{day.day}</span>
+              </div>
             </div>
-            <div className="flex-shrink-0 rounded-2xl bg-white px-4 py-3 text-center" style={{ border: "1px solid #e5e5e5" }}>
-              <p style={{ fontSize: 24, fontWeight: 800, color: "#171717", lineHeight: 1 }}>€{day.estimatedCost}</p>
-              <p style={{ fontSize: 13, color: "#a3a3a3", marginTop: 2 }}>ליום</p>
+            {/* Quick stats */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {[
+                { label: `${day.events.filter(e => e.type === "food").length} ארוחות`, color: "#22c55e" },
+                { label: `${day.events.filter(e => e.type === "activity").length} אטרקציות`, color: "#60a5fa" },
+                { label: `${day.events.filter(e => e.cost === "חינם").length} חינם`, color: "#4ade80" },
+              ].map(({ label, color }) => (
+                <span key={label} className="rounded-full px-3 py-1"
+                  style={{ fontSize: 12, fontWeight: 700, background: "rgba(255,255,255,0.08)", color }}>
+                  {label}
+                </span>
+              ))}
             </div>
-          </div>
-
-          <BudgetBar cost={day.estimatedCost} max={150} />
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {veganCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ background: "#f0fdf4", fontSize: 15, fontWeight: 500, color: "#16a34a" }}>
-                <Leaf className="h-3.5 w-3.5" />
-                {veganCount} מסעדות טבעוניות מאושרות
-              </span>
-            )}
-            {warningCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5" style={{ background: "#fff7ed", fontSize: 15, fontWeight: 500, color: "#ea580c" }}>
-                <AlertTriangle className="h-3.5 w-3.5" />
-                לבדוק אלרגיה ב-{warningCount} מקומות
-              </span>
-            )}
           </div>
         </div>
 
-        {/* ── Events ───────────────────────────────────────────────────── */}
-        <div className="relative space-y-4">
-          <div className="absolute right-[27px] top-10 h-[calc(100%-5rem)] w-px" style={{ background: "#e5e5e5" }} />
+        {/* Events timeline */}
+        <div className="space-y-0.5">
+          {day.events.map((e, i) => (
+            <EventRow key={i} e={e} />
+          ))}
+        </div>
 
-          {events.map((event: any) => {
-            const meta = ((EVENT_META as unknown) as Record<string, typeof EVENT_META.activity>)[event.type as string] ?? EVENT_META.activity;
-            const Icon = meta.Icon;
-            const url  = mapsUrl(event.lat, event.lng, event.title);
-            const isVegan   = event.allergyNote?.includes("✅");
-            const isWarning = event.allergyNote?.includes("⚠️");
+        {/* Shopping guide */}
+        <div>
+          <button onClick={() => setShowShopping(v => !v)}
+            className="flex w-full cursor-pointer items-center justify-between rounded-2xl p-4 transition-colors hover:bg-neutral-50"
+            style={{ border: "1px solid #e5e5e5" }}>
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5" style={{ color: "#ec4899" }} />
+              <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>מדריך קניות — Y2K & Grunge</span>
+            </div>
+            {showShopping ? <ChevronUp className="h-5 w-5 text-neutral-400" /> : <ChevronDown className="h-5 w-5 text-neutral-400" />}
+          </button>
 
-            return (
-              <div key={event.time + event.title} className="relative flex gap-4">
-
-                {/* time + icon */}
-                <div className="flex w-14 flex-shrink-0 flex-col items-center gap-1 pt-1.5">
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#a3a3a3" }}>{event.time}</span>
-                  <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full" style={{ background: meta.bg, border: `2px solid ${meta.color}30` }}>
-                    <Icon className="h-3.5 w-3.5" style={{ color: meta.color }} />
+          {showShopping && (
+            <div className="mt-3 space-y-2">
+              {SHOPPING_STORES.map(store => (
+                <div key={store.name} className="flex items-center gap-3 rounded-2xl p-4"
+                  style={{ border: "1px solid #f0f0f0" }}>
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                    style={{ background: "#fdf2f8" }}>
+                    <ShoppingBag className="h-5 w-5" style={{ color: "#ec4899" }} />
                   </div>
-                </div>
-
-                {/* card */}
-                <div className="mb-2 flex-1 overflow-hidden rounded-2xl transition-shadow duration-200 hover:shadow-md" style={{ border: "1px solid #f0f0f0", background: "#fff" }}>
-
-                  {/* main content */}
-                  <div className="p-5 pb-3">
-                    <div className="mb-2 flex items-start justify-between gap-2">
-                      <div className="flex-1">
-                        <span className="mb-1.5 inline-block rounded-full px-2.5 py-0.5" style={{ fontSize: 12, fontWeight: 600, background: meta.bg, color: meta.color }}>
-                          {meta.label}
-                        </span>
-                        <h3 style={{ fontSize: 18, fontWeight: 600, lineHeight: 1.3, color: "#171717" }}>
-                          {event.title}
-                        </h3>
-                      </div>
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="cursor-pointer rounded-xl p-2 transition-colors hover:bg-neutral-100" aria-label={`פתח ${event.title} במפה`}>
-                        <MapPin className="h-5 w-5 text-neutral-300 hover:text-neutral-500 transition-colors" />
-                      </a>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="flex items-center gap-1" style={{ fontSize: 15, color: "#737373" }}>
-                        <Clock className="h-3.5 w-3.5" />
-                        {event.duration}
-                      </span>
-                      <span style={{ fontSize: 15, fontWeight: 500, color: event.cost === 0 ? "#16a34a" : "#171717" }}>
-                        {event.cost === 0 ? "חינם" : `€${event.cost}`}
-                      </span>
-                    </div>
+                  <div className="flex-1 min-w-0">
+                    <p style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{store.name}</p>
+                    <p style={{ fontSize: 13, color: "#a3a3a3" }}>{store.area} · {store.distance}</p>
+                    <p style={{ fontSize: 12, color: "#ec4899", fontWeight: 600, marginTop: 2 }}>{store.style}</p>
                   </div>
-
-                  {/* tags */}
-                  {event.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 px-5 pb-3">
-                      {(event.tags as string[]).map((tag: string) => (
-                        <span key={tag} className="rounded-full" style={{ fontSize: 13, padding: "2px 10px", background: "#f5f5f5", color: "#525252" }}>
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* allergy */}
-                  {event.allergyNote && (
-                    <div className="flex items-start gap-2 px-5 py-3" style={{
-                      background: isVegan ? "#f0fdf4" : "#fff7ed",
-                      borderTop: `1px solid ${isVegan ? "#bbf7d0" : "#fed7aa"}`,
-                    }}>
-                      {isVegan
-                        ? <Leaf        className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600" />
-                        : <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0 text-orange-500" />
-                      }
-                      <p style={{ fontSize: 15, lineHeight: 1.5, color: isVegan ? "#15803d" : "#9a3412", fontWeight: 500 }}>
-                        {isVegan ? `טבעוני ללא חלב — ${event.allergyNote}` : `שימו לב: ${event.allergyNote}`}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* vibe note */}
-                  {(event as any).note && (
-                    <div className="px-5 py-3" style={{ borderTop: "1px solid #f5f5f5" }}>
-                      <p style={{ fontSize: 15, lineHeight: 1.55, color: "#737373", fontStyle: "italic" }}>
-                        {(event as any).note}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* map link */}
-                  <a href={url} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-end gap-1.5 px-5 py-3 transition-colors hover:bg-neutral-50"
-                    style={{ borderTop: "1px solid #f5f5f5", fontSize: 14, fontWeight: 500, color: "#a3a3a3", textDecoration: "none" }}
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    נווט ב-Google Maps
+                  <a href={store.mapsUrl} target="_blank" rel="noopener noreferrer"
+                    className="flex cursor-pointer items-center gap-1 rounded-xl px-3 py-2 transition-colors hover:bg-neutral-100"
+                    style={{ border: "1px solid #e5e5e5", fontSize: 13, fontWeight: 600, color: "#171717", textDecoration: "none" }}>
+                    <Navigation className="h-3.5 w-3.5" />
+                    מפה
                   </a>
                 </div>
+              ))}
+              <div className="rounded-2xl p-4" style={{ background: "#fdf2f8", border: "1px solid #fbcfe8" }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#9d174d", marginBottom: 4 }}>
+                  Y2K + Grunge Shopping Tips
+                </p>
+                <p style={{ fontSize: 13, color: "#be185d", lineHeight: 1.6 }}>
+                  כל הרשתות נמצאות ברחוב Mandraki וסביבתו · 7-10 דקות הליכה מ-Avalon ·
+                  חנויות ה-Vintage בעיר העתיקה לאפקט Y2K אותנטי יותר
+                </p>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
 
-        {/* ── Day navigation ───────────────────────────────────────────── */}
-        <div className="mt-10 flex items-center justify-between gap-4">
-          <button
-            onClick={() => setActiveDay(d => Math.max(0, d - 1))}
-            disabled={activeDay === 0}
-            className="flex cursor-pointer items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-5 py-3.5 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
-            style={{ fontSize: 16, fontWeight: 500, color: "#171717" }}
-          >
-            <ChevronLeft className="h-5 w-5 rotate-180" />
-            קודם
-          </button>
-          <span style={{ fontSize: 15, color: "#a3a3a3" }}>
-            {activeDay + 1} / {itinerary.length}
-          </span>
-          <button
-            onClick={() => setActiveDay(d => Math.min(itinerary.length - 1, d + 1))}
-            disabled={activeDay === itinerary.length - 1}
-            className="flex cursor-pointer items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-5 py-3.5 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-30"
-            style={{ fontSize: 16, fontWeight: 500, color: "#171717" }}
-          >
-            הבא
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* ── Flight reminder ───────────────────────────────────────────── */}
-        <div className="mt-10 flex items-center justify-between gap-4 rounded-2xl p-5" style={{ background: "#fafafa", border: "1px solid #e5e5e5" }}>
-          <div>
-            <p style={{ fontSize: 17, fontWeight: 600, color: "#171717" }}>עוד לא הזמנתם טיסה?</p>
-            <p style={{ fontSize: 15, lineHeight: 1.6, color: "#737373" }}>יולי עמוס — מושבים מתמלאים מהר.</p>
+        {/* Value optimization summary */}
+        <div className="rounded-2xl p-5" style={{ border: "1px solid #f0f0f0" }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "#171717", marginBottom: 12 }}>אופטימיזציית ערך — סיכום</p>
+          <div className="space-y-3">
+            {[
+              { activity: "Valley of the Butterflies", cost: "€5", verdict: "שמור", reason: "חוויה ייחודית לחלוטין — אין חינם שקול" },
+              { activity: "Acropolis Lindos", cost: "€6 (ילדים חינם)", verdict: "שמור", reason: "הנוף של Lindos = חוויית WOW — ₪90 לאדם בוגר" },
+              { activity: "Medieval Museum", cost: "€6", verdict: "שמור", reason: "Harry Potter vibes + ילדים ב-€0 — שווה" },
+              { activity: "Elli Beach (חוף ניו טאון)", cost: "חינם", verdict: "הוסף", reason: "חוף מעולה 10 דקות מהמלון — ₪0" },
+              { activity: "Knights Street Walk", cost: "חינם", verdict: "הוסף", reason: "Diagon Alley vibes — חוויה שלמה בחינם מוחלט" },
+              { activity: "Star Gazing בנמל", cost: "חינם", verdict: "הוסף", reason: "ספטמבר = שמים מושלמים + חינם" },
+            ].map(({ activity, cost, verdict, reason }) => (
+              <div key={activity} className="flex items-start gap-3">
+                <span className="mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5"
+                  style={{ fontSize: 11, fontWeight: 700,
+                    background: verdict === "שמור" ? "#fef9ec" : "#f0fdf4",
+                    color:      verdict === "שמור" ? "#92400e" : "#15803d" }}>
+                  {verdict === "שמור" ? "₪ שמור" : "✓ חינם"}
+                </span>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#171717" }}>{activity}</p>
+                  <p style={{ fontSize: 13, color: "#737373" }}>{cost} · {reason}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <a
-            href="https://www.elal.com/heb/israel"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex flex-shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-[#171717] px-5 py-3 text-white transition-opacity hover:opacity-90"
-            style={{ fontSize: 16, fontWeight: 600, textDecoration: "none" }}
-          >
-            אל על
-            <ArrowLeft className="h-4 w-4" />
-          </a>
         </div>
 
       </div>
