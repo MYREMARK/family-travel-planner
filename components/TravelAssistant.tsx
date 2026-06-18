@@ -99,8 +99,8 @@ export function TravelAssistant() {
         aria-label="פתח עוזר נסיעות"
         className="fixed z-40 flex cursor-pointer items-center gap-2 transition-all duration-200 hover:scale-105 active:scale-95"
         style={{
-          // Mobile: bottom-left above nav bar
-          bottom: "calc(env(safe-area-inset-bottom, 0px) + 70px)",
+          // Mobile: above the floating nav bar (60px pill + 16px gap + safe-area + 12px clearance)
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 104px)",
           left: 16,
           background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
           color: "#fff",

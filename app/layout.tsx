@@ -59,7 +59,8 @@ export default function RootLayout({
         <div className="hidden md:block">
           <Navbar />
         </div>
-        <main className="pb-20 md:pb-0">
+        {/* pb accounts for: 60px pill + 16px gap + env(safe-area-inset-bottom) + 12px clearance ≈ 110px on notched phones */}
+        <main className="pb-28 md:pb-0">
           {children}
           <footer className="pb-24 pt-6 text-center md:pb-10">
             <span style={{ fontSize: 12, color: "#d1d5db", fontFamily: "'Rubik', system-ui, sans-serif" }}>
