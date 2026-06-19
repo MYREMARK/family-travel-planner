@@ -10,10 +10,10 @@ import {
 const GPT_URL = "https://chatgpt.com/g/g-6a317d4a92088191abb687ad50aca7df-mdryk-rvdvs";
 
 const QUICK_QUESTIONS = [
-  { q: "מה הכי מומלץ לילדים ברודוס?",   icon: Compass      },
-  { q: "איפה אפשר לאכול טבעוני?",        icon: Utensils     },
-  { q: "מה כדאי לראות ביום ראשון?",      icon: CalendarDays },
-  { q: "אלרגיה לחלב — מה לשים לב?",     icon: AlertCircle  },
+  { q: "אלרגיה לחלב — מה לשים לב ברודוס?",         icon: AlertCircle  },
+  { q: "חנויות גיטרות ומוזיקה ברודוס לנועם?",        icon: Compass      },
+  { q: "חוויות בעלי חיים ו-K-Pop למעיין ברודוס?",   icon: Utensils     },
+  { q: "Profitis Ilias stargazing — הכנות לנועם?",  icon: CalendarDays },
 ];
 
 function openGPT(question?: string) {
@@ -225,8 +225,9 @@ export function TravelAssistant() {
                 <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.05)" }}>
                   <p style={{ fontSize: 11, color: "#525252", lineHeight: 1.5 }}>
                     יעד: רודוס, יוון · 7–10 ספטמבר 2026 · 3 לילות<br />
-                    משפחה: אבא(41) + נועם(13) + מעיין(10) · אלרגיה לחלב + טבעוני<br />
-                    מלון: {ctx.selectedHotel}
+                    מארק(41) · נועם(13.5, אלרגיה חמורה לחלב) · מעיין(10.5)<br />
+                    נועם: אסטרונומיה, HP, גיטרות, Grunge · מעיין: K-Pop, בעלי חיים, קניות<br />
+                    מלון: {ctx.selectedHotel} · Old Town
                   </p>
                 </div>
               </div>
@@ -236,21 +237,31 @@ export function TravelAssistant() {
             <div className="rounded-2xl p-4" style={{ border: "1px solid #f0f0f0" }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: "#a3a3a3", marginBottom: 10 }}>פרופיל משפחה</p>
               {[
-                { name: "מארק (אבא)", age: "41", note: "מארגן" },
-                { name: "נועם",       age: "13", note: "מתבגר" },
-                { name: "מעיין",      age: "10", note: "אלרגית לחלב" },
+                { name: "מארק (אבא)", age: "41",   note: "מארגן הטיול",              color: "#525252" },
+                { name: "נועם",       age: "13.5", note: "אסטרונומיה · HP · גיטרות", color: "#7c3aed" },
+                { name: "מעיין",      age: "10.5", note: "K-Pop · בעלי חיים · קניות", color: "#ec4899" },
               ].map(p => (
                 <div key={p.name} className="flex items-center gap-3 mb-2 last:mb-0">
                   <div className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: "#f5f5f5" }}>
                     <User className="h-3.5 w-3.5 text-neutral-400" />
                   </div>
-                  <span style={{ fontSize: 15, color: "#171717", flex: 1 }}>{p.name}</span>
-                  <span style={{ fontSize: 13, color: "#a3a3a3" }}>{p.note}</span>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>{p.name}</span>
+                    <span style={{ fontSize: 12, color: "#a3a3a3", marginRight: 6 }}> · {p.age}</span>
+                    <p style={{ fontSize: 11, color: p.color, marginTop: 1 }}>{p.note}</p>
+                  </div>
                 </div>
               ))}
-              <div className="mt-3 flex items-center gap-2 rounded-xl p-2.5" style={{ background: "#fef9ec" }}>
-                <AlertCircle className="h-4 w-4 flex-shrink-0" style={{ color: "#ca8a04" }} />
-                <span style={{ fontSize: 13, color: "#92400e" }}>אלרגיה לחלב + תזונה טבעונית (מעיין)</span>
+              {/* Allergy alerts */}
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: "#fef2f2" }}>
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" style={{ color: "#dc2626" }} />
+                  <span style={{ fontSize: 13, color: "#991b1b", fontWeight: 600 }}>נועם — אלרגיה חמורה לחלב · עדיפות עליונה</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-xl p-2.5" style={{ background: "#fef9ec" }}>
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" style={{ color: "#ca8a04" }} />
+                  <span style={{ fontSize: 13, color: "#92400e" }}>מעיין — אלרגיה קלה לאבק · לא מסכנת חיים</span>
+                </div>
               </div>
             </div>
 

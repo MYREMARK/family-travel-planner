@@ -206,6 +206,34 @@ const RESTAURANTS = [
 type Restaurant = typeof RESTAURANTS[number];
 type Area = "הכל" | "New Town" | "Old Town" | "Lindos";
 
+// ─── Noam/Maayan/Family scores per restaurant ─────────────────────────────────
+// Noam (13.5): Astronomy, HP, Rock/Guitars, Grunge — SEVERE milk allergy
+// Maayan (10.5): K-Pop, Animals, Shopping, Interactive — mild dust allergy
+const PERSON_SCORES: Record<string, { noam: number; maayan: number; family: number }> = {
+  "annies-vegan":       { noam: 9, maayan: 8,  family: 10 }, // 100% safe, best allergy score
+  "t-veg":              { noam: 8, maayan: 8,  family: 9  }, // close, safe, burgers
+  "platanos":           { noam: 6, maayan: 7,  family: 7  }, // traditional, ask about allergy
+  "ono":                { noam: 8, maayan: 7,  family: 8  }, // WOW fine dining
+  "rubisco":            { noam: 8, maayan: 7,  family: 8  }, // fine dining
+  "meltemi":            { noam: 6, maayan: 7,  family: 7  }, // traditional, check allergy
+  "old-town-market-cafe": { noam: 7, maayan: 8, family: 8 }, // casual, açaí
+  "melenos":            { noam: 7, maayan: 8,  family: 8  }, // best views in Rhodes
+  "kalypso":            { noam: 7, maayan: 9,  family: 9  }, // Lindos rooftop WOW
+};
+
+// ─── Score bar (person) ───────────────────────────────────────────────────────
+function PersonScoreBar({ score, color, label }: { score: number; color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span style={{ fontSize: 10, fontWeight: 700, color, minWidth: 42 }}>{label}</span>
+      <div className="flex-1 rounded-full overflow-hidden" style={{ height: 4, background: "#f5f5f5" }}>
+        <div className="h-full rounded-full" style={{ width: `${score * 10}%`, background: color }} />
+      </div>
+      <span style={{ fontSize: 10, color: "#a3a3a3", minWidth: 16, textAlign: "right" }}>{score}</span>
+    </div>
+  );
+}
+
 // ─── Score badge ──────────────────────────────────────────────────────────────
 function ScoreBadge({ score, label, color, bg }: { score: number; label: string; color: string; bg: string }) {
   return (
@@ -268,6 +296,20 @@ function RestaurantCard({ r }: { r: Restaurant }) {
             <p style={{ fontSize: 12, color: "#737373" }}>רמת מחיר</p>
           </div>
         </div>
+
+        {/* Person scores */}
+        {PERSON_SCORES[r.id] && (
+          <div className="mb-3 rounded-xl p-3" style={{ background: "#fafafa", border: "1px solid #f0f0f0" }}>
+            <p style={{ fontSize: 10, fontWeight: 700, color: "#a3a3a3", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              ציון אישי
+            </p>
+            <div className="space-y-1.5">
+              <PersonScoreBar score={PERSON_SCORES[r.id].noam}   color="#7c3aed" label="נועם" />
+              <PersonScoreBar score={PERSON_SCORES[r.id].maayan} color="#ec4899" label="מעיין" />
+              <PersonScoreBar score={PERSON_SCORES[r.id].family} color="#ca8a04" label="משפחה" />
+            </div>
+          </div>
+        )}
 
         {/* Description */}
         <p style={{ fontSize: 14, color: "#525252", lineHeight: 1.6, marginBottom: 12 }}>{r.description}</p>
