@@ -596,6 +596,43 @@ const SHOPPING_DISCOVERY = [
   { name: "Alternative Store", style: "Grunge + Alternative", area: "עיר עתיקה", distance: "15 דק'", noamScore: 9, maayanScore: 6, mapsUrl: "https://www.google.com/maps/search/?api=1&query=alternative+fashion+Rhodes" },
 ];
 
+// ─── Hero images ──────────────────────────────────────────────────────────────
+// Default image per event type
+const TYPE_IMAGE: Record<string, string> = {
+  flight:    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=70",
+  hotel:     "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=70",
+  food:      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=70",
+  activity:  "https://images.unsplash.com/photo-1485872299829-c673f5194813?auto=format&fit=crop&w=800&q=70",
+  shopping:  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=70",
+  transport: "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?auto=format&fit=crop&w=800&q=70",
+  rest:      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=70",
+};
+
+// Per-event overrides — keyed by event label (partial match via startsWith)
+const EVENT_IMAGE_OVERRIDES: Record<string, string> = {
+  "נחיתה":                   "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=70",
+  "Avalon Boutique Hotel":   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=70",
+  "Annie's":                 "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
+  "Medieval City":           "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
+  "חומות העיר העתיקה":       "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
+  "T Veg":                   "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
+  "לינדוס":                  "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=70",
+  "Lindos Acropolis":        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=70",
+  "St Paul's Bay":           "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=70",
+  "Kalypso":                 "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=70",
+  "RuBisCo":                 "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=70",
+  "פילרימוס":                "https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=800&q=70",
+  "Palace of the Grand Master": "https://images.unsplash.com/photo-1569587112025-0d460e81a126?auto=format&fit=crop&w=800&q=70",
+  "Knights Street":          "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
+  "Profitis Ilias":          "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=800&q=70",
+  "קניות — רחוב דיאגוראס":  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=70",
+};
+
+function getEventImage(label: string, type: string): string {
+  const override = Object.keys(EVENT_IMAGE_OVERRIDES).find(key => label.includes(key));
+  return override ? EVENT_IMAGE_OVERRIDES[override] : (TYPE_IMAGE[type] ?? TYPE_IMAGE.activity);
+}
+
 // ─── Event type colors ─────────────────────────────────────────────────────────
 const TYPE_STYLE: Record<string, { color: string; bg: string }> = {
   flight:    { color: "#7c3aed", bg: "#f5f3ff" },
@@ -673,12 +710,50 @@ function EventRow({ e }: { e: any }) {
       {/* Card */}
       <div className="mb-2 flex-1 overflow-hidden rounded-2xl"
         style={{ border: "1px solid #f0f0f0", background: "#fff" }}>
+
+        {/* Hero image */}
+        {e.type !== "rest" && e.type !== "transport" && (
+          <div style={{ position: "relative", height: 140, overflow: "hidden", background: "#f5f5f5" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getEventImage(e.label as string, e.type as string)}
+              alt={e.label as string}
+              loading="lazy"
+              onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+            {/* Gradient overlay for readability */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)",
+            }} />
+            {/* Time chip on image */}
+            <div style={{
+              position: "absolute", top: 10, right: 10,
+              background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+              borderRadius: 10, padding: "3px 8px",
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{e.time}</span>
+            </div>
+            {/* Type icon on image */}
+            <div style={{
+              position: "absolute", bottom: 10, left: 10,
+              background: s.bg, borderRadius: 10, padding: "4px 8px",
+              display: "flex", alignItems: "center", gap: 4,
+            }}>
+              <Icon style={{ width: 14, height: 14, color: s.color }} />
+            </div>
+          </div>
+        )}
+
         <div className="p-3">
           <div className="flex items-start gap-2.5">
-            {/* Icon */}
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: s.bg }}>
-              <Icon className="h-5 w-5" style={{ color: s.color }} />
-            </div>
+            {/* Icon — only shown for rest/transport (no hero) */}
+            {(e.type === "rest" || e.type === "transport") && (
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: s.bg }}>
+                <Icon className="h-5 w-5" style={{ color: s.color }} />
+              </div>
+            )}
 
             {/* Content */}
             <div className="flex-1 min-w-0">
