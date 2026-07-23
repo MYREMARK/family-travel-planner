@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Utensils, CheckSquare, Wallet, Settings } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Utensils, CheckSquare, Globe, Settings } from "lucide-react";
 
 const tabs = [
   { href: "/",            label: "בית",      Icon: LayoutDashboard },
   { href: "/planner",     label: "מסלול",    Icon: CalendarDays    },
   { href: "/restaurants", label: "מסעדות",   Icon: Utensils        },
   { href: "/checklist",   label: "צ'קליסט", Icon: CheckSquare     },
-  { href: "/budget",      label: "תקציב",    Icon: Wallet          },
+  { href: "/hub",         label: "מרכז",     Icon: Globe           },
   { href: "/settings",    label: "הגדרות",   Icon: Settings        },
 ];
 
