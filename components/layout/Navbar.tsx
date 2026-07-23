@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { UtensilsCrossed, CalendarDays, CheckSquare, LayoutDashboard, Wallet, Settings } from "lucide-react";
+import { UtensilsCrossed, CalendarDays, CheckSquare, LayoutDashboard, Wallet, Globe, Settings } from "lucide-react";
 
 const links = [
   { href: "/",            label: "סקירה",    Icon: LayoutDashboard },
   { href: "/planner",     label: "מסלול",    Icon: CalendarDays    },
   { href: "/restaurants", label: "מסעדות",   Icon: UtensilsCrossed },
   { href: "/checklist",   label: "צ'קליסט", Icon: CheckSquare     },
+  { href: "/hub",         label: "מרכז",     Icon: Globe           },
   { href: "/budget",      label: "תקציב",    Icon: Wallet          },
   { href: "/settings",    label: "הגדרות",   Icon: Settings        },
 ];
