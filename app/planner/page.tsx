@@ -6,13 +6,16 @@ import {
   Star, Moon, Sun, Coffee, MapPin, Navigation,
   Clock, AlertCircle, Leaf, Music, BookOpen, Telescope,
   ChevronDown, ChevronUp, ExternalLink, Sparkles,
-  Eye, DollarSign, Guitar, Disc, PawPrint,
+  Eye, Guitar, Disc, PawPrint, Hourglass, RefreshCw,
+  ShieldAlert, ShieldCheck,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Noam (13.5): Astronomy, Harry Potter, Rock/Guitars, Grunge Fashion
-//              SEVERE MILK ALLERGY — always check!
+//              SEVERE MILK ALLERGY — always check! Avoid cross-contamination.
 // Maayan (10.5): K-Pop, Dance, Animals, Shopping, Interactive experiences
+// Avalon Boutique Hotel is INSIDE Rhodes Old Town (9 Haritos St), steps from
+// the Palace of the Grand Master — all geography below is based on that.
 interface Event {
   time: string;
   label: string;
@@ -22,7 +25,13 @@ interface Event {
   tags: string[];
   cost: string | null;
   mapsUrl?: string;
-  travelTime?: string;
+  travelTime?: string;      // זמן הליכה/נסיעה משוער
+  distancePrev?: string;    // מרחק מהפעילות הקודמת
+  duration?: string;        // משך הפעילות המשוער
+  transportOption?: string; // אפשרות תחבורה
+  altOption?: string;       // אפשרות חלופית (מסעדה סגורה / דרך חלופית)
+  safetyNote?: string;      // הערת בטיחות ספציפית לאירוע
+  wowLevel?: number;        // רמת WOW 1–10
   noamScore?: number;       // 1-10 — Astronomy, HP, Rock, Grunge
   maayanScore?: number;     // 1-10 — K-Pop, Animals, Shopping, Dance
   familyScore?: number;     // 1-10 — shared experience quality
@@ -40,392 +49,497 @@ interface Event {
   primaryFor?: "noam" | "maayan" | "family";
 }
 
+interface DaySummary {
+  safety: "🟢" | "🟡" | "🔴";
+  safetyNote: string;
+  foodSafety: "🟢" | "🟡" | "🔴";
+  walkingComfort: "🟢" | "🟡" | "🔴";
+  wow: number;    // 1-10
+  value: number;  // 1-10
+  noamWillLove: string;
+  maayanWillLove: string;
+}
+
+const SAFETY_BOILERPLATE =
+  "לא נמצאו כרגע דיווחים על אירוע פוליטי, הפגנה או אירוע חריג באזור ובשעות המתוכננות. מומלץ לבצע בדיקה חוזרת סמוך ליציאה.";
+
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 const DAYS: {
   day: number; date: string; dayLabel: string; title: string; subtitle: string;
   color: string; bg: string;
   noamHighlight: string; maayanHighlight: string; familyHighlight: string;
   events: Event[];
+  summary: DaySummary;
 }[] = [
-  // ── DAY 1 ─────────────────────────────────────────────────────────────────
+  // ── DAY 1 — Mon Sept 7 ───────────────────────────────────────────────────
   {
     day: 1,
-    date: "ספטמבר 7, 2026",
+    date: "ספטמבר 7, 2026 · יום שני",
     dayLabel: "יום ראשון",
-    title: "יום הגעה — התאקלמות",
-    subtitle: "טיסה מוקדמת, עיר עתיקה, ארוחת ערב טבעונית",
+    title: "יום הגעה — יום קל, בלי לחץ",
+    subtitle: "טיסת לילה כמעט ללא שינה + צ'ק אין רק ב-14:00 → יום הכי קל בטיול, בכוונה",
     color: "#7c3aed",
     bg: "#f5f3ff",
-    noamHighlight: "Knights Street — Harry Potter atmosphere",
-    maayanHighlight: "חומות העיר — Photography spots",
-    familyHighlight: "Medieval City — כניסה חינם לכולם",
+    noamHighlight: "סמטאות העיר העתיקה ליד המלון — כבר בתוך אווירת הארי פוטר",
+    maayanHighlight: "חומות העיר בשקיעה — נקודת צילום רגועה לסיום היום",
+    familyHighlight: "אין שום צורך להספיק הרבה — Avalon נמצא בלב העיר העתיקה, הכל בהישג יד",
     events: [
       {
         time: "07:05",
         label: "נחיתה — Diagoras Airport, Rhodes",
-        detail: "RHO · מונית לAvalon ~€15 · 20 דקות",
+        detail: "RHO · המלון עצמו נמצא בלב העיר העתיקה, לא ב'עיר החדשה' — מונית ישירה",
         icon: Plane, type: "flight",
         tags: ["הגעה"],
-        cost: "€15 מונית",
+        cost: "€27–35 מונית (מחיר רשמי מהשדה, מאומת בחיפוש עדכני)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Airport+Diagoras",
-        travelTime: "20 דקות לAvalon",
+        travelTime: "כ-25 דקות מונית לעיר העתיקה",
+        distancePrev: "—", duration: "—",
         noamScore: 5, maayanScore: 6, familyScore: 7,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "הרגע הראשון ברודוס — ראה ים כחול מהחלון",
-        maayanNote: "מסע מתחיל! ציפייה לבעלי החיים ולקניות",
+        noamNote: "הרגע הראשון ברודוס — ים כחול מהחלון",
+        maayanNote: "מסע מתחיל! ציפייה לטווסים ולקניות",
+        tip: "מוניות רשמיות כחולות-כהות עם גג לבן, בתחנה הרשמית מחוץ ליציאה. בקיץ לפעמים גובים €30–40 — בקשו מונה או מחיר קבוע מראש.",
       },
       {
-        time: "08:30",
+        time: "07:45",
         label: "Avalon Boutique Hotel — השארת מזוודות",
-        detail: "הגיעו לפני הצ'ק אין · השאירו מזוודות בקבלה · בקשו early check-in",
+        detail: "המלון בלב העיר העתיקה, ממש ליד ארמון הגרנד מאסטר · אין צ'ק אין מוקדם — השאירו מזוודות בקבלה",
         icon: Hotel, type: "hotel",
-        tags: ["New Town", "הכנה"],
+        tags: ["עיר עתיקה", "הכנה"],
         cost: "כלול",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
-        travelTime: "נקודת ייחוס",
+        travelTime: "יעד מרכזי לכל שאר היום",
+        distancePrev: "מהשדה — ~14 ק\"מ", duration: "10 דקות",
         noamScore: 5, maayanScore: 5, familyScore: 6,
         allergyRating: "safe", veganAvailable: true,
-        tip: "בקשו early check-in — לפעמים מאפשרים",
+        tip: "בקשו early check-in בנימוס — לעיתים מאפשרים, אבל אל תסמכו על זה. המלון עצמו נמצא בתוך העיר העתיקה — כל מה שמתוכנן היום הוא הליכה של דקות ספורות.",
+      },
+      {
+        time: "08:00",
+        label: "שוטטות קלה בסמטאות העיר העתיקה",
+        detail: "רחובות אבן מימי הביניים ממש ליד המלון — אין צורך להתרחק כלל. חלונות ראווה של ThriftIT (וינטג'/יד-שנייה) ו-Eclectia (בוטיק מקומי) בסביבה",
+        icon: Camera, type: "activity",
+        tags: ["Harry Potter", "וינטג'", "קרוב למלון", "ללא מאמץ"],
+        cost: "חינם",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town",
+        travelTime: "0-5 דקות מהמלון",
+        distancePrev: "צמוד למלון", duration: "כ-45 דקות, קצב חופשי",
+        noamScore: 8, maayanScore: 7, familyScore: 8,
+        allergyRating: "safe", veganAvailable: true,
+        noamNote: "ThriftIT — חנות וינטג'/יד-שנייה עם פוטנציאל לפריטי Grunge, ממש בעיר העתיקה",
+        maayanNote: "סמטאות אבן, חלונות ראווה — פתיחה רגועה ליום עם הרבה תמונות",
+        harryPotter: true, wowLevel: 6, primaryFor: "family",
+        tip: "בכוונה לא תכננו כאן כניסה בתשלום לשום אתר — רק הליכה חופשית. המטרה: להתרשם מהאזור, לא 'להספיק'.",
       },
       {
         time: "09:00",
-        label: "ארוחת בוקר — Annie's Vegan Kitchen",
-        detail: "3 דקות מAvalon · Açaí bowl, קפה, מאפים טבעוניים · 100% ללא חלב",
+        label: "ארוחת בוקר — ONO Vegan & Vegetarian",
+        detail: "כמה דקות הליכה מ-Avalon · מסעדה צמחונית עם תפריט טבעוני מסומן בבירור, ידידותית לכשרות · פתוחה 9:00–22:30 (סגורה בימי א')",
         icon: Coffee, type: "food",
-        tags: ["טבעוני 100%", "3 דק' מהמלון", "בטוח לאלרגיה"],
-        cost: "₪40 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Annie's+Vegan+Kitchen+Rhodes",
-        travelTime: "3 דקות הליכה",
-        noamScore: 8, maayanScore: 8, familyScore: 9,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "100% בטוח לאלרגיה לחלב — ארוחת בוקר ללא דאגות",
-        maayanNote: "Açaí bowl צבעוני, smoothies — Instagram-perfect",
-        tip: "בקשו Açaí bowl עם חלב שקדים — הכי טעים",
-        primaryFor: "family",
+        tags: ["טבעוני מסומן", "קרוב למלון", "מטבח לא טבעוני בלעדי"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות הליכה",
+        distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
+        noamScore: 7, maayanScore: 7, familyScore: 8,
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        noamNote: "המטבח אינו טבעוני בלעדי — הזמינו רק מנות המסומנות Vegan בתפריט, וציינו לצוות במפורש 'severe dairy allergy, please avoid cross-contamination'",
+        maayanNote: "שקשוקה טבעונית / פנקייק נוטלה טבעוני — אופציה טעימה לבוקר ראשון",
+        tip: "לא מצאנו פרוטוקול רשמי ומאומת למניעת זיהום צולב — לכן זו לא 'אפשרות בטוחה' באופן מוחלט, אלא אפשרות טובה בתנאי שמבקשים במפורש זהירות.",
+        altOption: "Annie's Vegan Food & Bar — 100% טבעוני, אך זה Pop-up שדורש הזמנה מראש בוואטסאפ, פתוח רק 11:00–15:00 בימי ג'-ו' — לא רלוונטי לארוחת בוקר, ולא מאומת שעדיין פעיל בקיץ 2026.",
       },
       {
-        time: "10:00",
-        label: "Medieval City of Rhodes",
-        detail: "12 דקות מAvalon · שוטטו ברחובות האבן · כניסה חינם",
-        icon: Compass, type: "activity",
-        tags: ["חינם", "Harry Potter", "Photography"],
-        cost: "חינם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Medieval+City+of+Rhodes",
-        travelTime: "12 דקות הליכה",
-        noamScore: 9, maayanScore: 7, familyScore: 9,
+        time: "10:15",
+        label: "Sakellaridis Music Shop — לנועם",
+        detail: "Museum Square 9, בעיר העתיקה · חנות כלי נגינה ותיקה (פועלת מ-1947) · מאומתת בחיפוש עדכני",
+        icon: Guitar, type: "shopping",
+        tags: ["מוזיקה", "לנועם", "מאומת"],
+        cost: "חינם (כניסה/הצצה)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Sakellaridis+Music+Shop+Museum+Square+Rhodes",
+        travelTime: "5 דקות הליכה",
+        distancePrev: "כ-350 מ'", duration: "10–15 דקות",
+        noamScore: 9, maayanScore: 3, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "Knights Street = Diagon Alley. Harry Potter vibes מלאים",
-        maayanNote: "חנויות, צבעים, אווירה — K-Pop photography vibes",
-        harryPotter: true, wow: true,
-        tip: "הכניסה לעיר חינם · Knights Street — הרחוב הכי יפה",
-        primaryFor: "noam",
+        noamNote: "חנות מוזיקה אמיתית ומאומתת בעיר העתיקה, לא סתם המלצה כללית — שווה הצצה גם בלי לקנות",
+        wowLevel: 7, primaryFor: "noam",
+        tip: "לא בונים סביבה מסלול שלם — רק עצירה קצרה ואופציונלית בדרך.",
+      },
+      {
+        time: "12:00",
+        label: "ארוחת צהריים קלה — RuBisCo",
+        detail: "על הרחוב הראשי של העיר העתיקה · מיצים סחוטים קר, קערות אסאי, חלב שקדים ביתי · לא מסעדה טבעונית מלאה — יש אפשרויות עם דבש/אבקת חלבון מי גבינה",
+        icon: Utensils, type: "food",
+        tags: ["קליל", "רחוב ראשי", "ציינו אלרגיה"],
+        cost: "€6–9 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=RuBisCo+Cold+Pressed+Juices+Rhodes",
+        travelTime: "8 דקות הליכה",
+        distancePrev: "כ-500 מ'", duration: "כ-30 דקות",
+        noamScore: 6, maayanScore: 7, familyScore: 7,
+        allergyRating: "ok", veganAvailable: true,
+        noamNote: "בקשו קערת אסאי/סמוזי עם חלב שקדים בלבד — ללא דבש וללא אבקת חלבון מי גבינה",
+        tip: "ארוחה קלה בכוונה — לא ארוחה מלאה, כי הבוקר כבר היה מלא. שומרים כוחות למחר.",
+        altOption: "אם סגור: ONO (8 דקות הליכה חזרה)",
       },
       {
         time: "14:00",
         label: "צ'ק אין — Avalon",
-        detail: "פתחו את החדר · מנוחה קצרה אחרי הטיסה",
+        detail: "פתחו את החדר · מנוחה קצרה אחרי לילה כמעט ללא שינה",
         icon: Hotel, type: "hotel",
         tags: ["הוזמן"],
         cost: "כלול",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
         travelTime: "המלון",
+        distancePrev: "—", duration: "—",
         noamScore: 5, maayanScore: 5, familyScore: 6,
         allergyRating: "safe", veganAvailable: true,
       },
       {
+        time: "15:00",
+        label: "מנוחה חופשית במלון",
+        detail: "בכוונה אין כאן שום תוכנית — מנוחה אמיתית לפני שממשיכים",
+        icon: Moon, type: "rest",
+        tags: ["חובה", "מנוחה"],
+        cost: null,
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
+        travelTime: "המלון",
+        distancePrev: "—", duration: "כ-2 שעות",
+        noamScore: 4, maayanScore: 4, familyScore: 6,
+        allergyRating: "safe", veganAvailable: true,
+      },
+      {
         time: "17:30",
-        label: "חומות העיר העתיקה — Sunset Walk",
-        detail: "Old Town Walls · נוף פנורמי לים · Golden hour photography",
+        label: "חומות העיר העתיקה — הליכה קלה בשקיעה",
+        detail: "Old Town Walls · נוף פנורמי לים · טיול קצר וקל בלבד — כמבוקש ליום הראשון",
         icon: Camera, type: "activity",
-        tags: ["Photography", "נוף", "Sunset"],
-        cost: "€6 לאדם",
+        tags: ["Photography", "נוף", "Sunset", "קצר וקל"],
+        cost: "€6 לאדם (משוער)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town+Walls",
-        travelTime: "12 דקות הליכה",
+        travelTime: "2 דקות הליכה",
+        distancePrev: "כ-150 מ'", duration: "כ-45 דקות, הליכה שטוחה וקלה",
         noamScore: 8, maayanScore: 9, familyScore: 9,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "נוף לכוכבים עולים — atmosphere מושלם לפני הלילה",
-        maayanNote: "Golden hour photography — תמונות K-Pop aesthetic מושלמות",
-        wow: true, primaryFor: "maayan",
+        noamNote: "נוף רגוע לפני הלילה — אווירה שקטה",
+        maayanNote: "Golden hour photography — תמונות יפות בלי מאמץ",
+        wow: true, wowLevel: 8, primaryFor: "maayan",
+        tip: "הליכה שטוחה לגמרי, בלי מדרגות משמעותיות. אם מרגישים עייפים — אפשר לוותר על זה בלי לפספס הרבה.",
       },
       {
         time: "19:30",
-        label: "ארוחת ערב — T Veg",
-        detail: "5 דקות מAvalon · Burger טבעוני, סלטים · בטוח לאלרגיה",
+        label: "ארוחת ערב — ONO (שוב, בכוונה)",
+        detail: "יום ראשון עייף — חוזרים למקום מוכר ובטוח שכבר ביקרתם בו הבוקר, במקום להתנסות במסעדה חדשה בלילה הראשון",
         icon: Utensils, type: "food",
-        tags: ["טבעוני", "5 דק' מהמלון", "בטוח לאלרגיה"],
-        cost: "₪55 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=T+Veg+Rhodes",
+        tags: ["בטוח ומוכר", "5 דק' מהמלון"],
+        cost: "€10–15 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
-        noamScore: 7, maayanScore: 8, familyScore: 8,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "Burger טבעוני — ללא חלב בכלל",
-        maayanNote: "אווירה צבעונית, תפריט ידידותי",
+        distancePrev: "כ-300 מ'", duration: "כ-1 שעה",
+        noamScore: 7, maayanScore: 6, familyScore: 8,
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        tip: "הזמינו שוב רק מנות מסומנות Vegan וציינו את האלרגיה. עדיפות לפשטות ולוודאות ביום הכי עייף של הטיול.",
       },
     ],
+    summary: {
+      safety: "🟢",
+      safetyNote: SAFETY_BOILERPLATE + " יוון נמצאת ברמת התראה מוגברת עבור ישראלים (בעיקר סביב הפגנות ואזורי חיי לילה) — לא רלוונטי למסלול המשפחתי השקט הזה, אך כדאי להיות מודעים ולהימנע מלענוד סמלים ישראליים/יהודיים בולטים בציבור.",
+      foodSafety: "🟡",
+      walkingComfort: "🟢",
+      wow: 6,
+      value: 8,
+      noamWillLove: "חנות המוזיקה הוותיקה והסמטאות שכבר מרגישות כמו הארי פוטר",
+      maayanWillLove: "השקיעה מהחומות וחלונות הראווה בעיר העתיקה",
+    },
   },
 
-  // ── DAY 2 ─────────────────────────────────────────────────────────────────
+  // ── DAY 2 — Tue Sept 8 ───────────────────────────────────────────────────
   {
     day: 2,
-    date: "ספטמבר 8, 2026",
+    date: "ספטמבר 8, 2026 · יום שלישי",
     dayLabel: "יום שני",
     title: "Lindos — יום ה-WOW",
-    subtitle: "אקרופוליס, מפרץ כחול, סמטאות לבנות, ארוחת ערב Fine Dining",
+    subtitle: "אקרופוליס, מפרץ כחול, סמטאות לבנות, ארוחת ערב בעיר העתיקה",
     color: "#0284c7",
     bg: "#f0f9ff",
-    noamHighlight: "Acropolis — היסטוריה, ארכיאולוגיה, Harry Potter feeling",
-    maayanHighlight: "Lindos alleys — K-Pop photography, קניות, בתים לבנים",
-    familyHighlight: "St Paul's Bay — מים טורקיז, משפחה שלמה",
+    noamHighlight: "Acropolis — היסטוריה, נוף, תחושת מבצר עתיק",
+    maayanHighlight: "St Paul's Bay + סמטאות Lindos — צילום, מים טורקיז",
+    familyHighlight: "אפשר לדלג על הטיפוס באקרופוליס עם רכיבת חמור מסורתית",
     events: [
       {
         time: "08:30",
         label: "נסיעה ל-Lindos",
-        detail: "אוטובוס 015 · €3 לנפש · 55 דקות · נוף לים כל הדרך",
+        detail: "אוטובוס 015 מהתחנה המרכזית · מחיר מאומת: €5.50 לנפש · יציאות תכופות מהבוקר",
         icon: MapPin, type: "transport",
-        tags: ["55 ק\"מ", "€3 לנפש"],
-        cost: "€3 לאדם / €35 מונית",
+        tags: ["€5.50 מאומת", "כ-50 ק\"מ"],
+        cost: "€5.50 לאדם (מאומת) / מונית ~€35–40 (משוער)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Lindos+Rhodes+Greece",
-        travelTime: "55 דקות",
+        travelTime: "כ-45–55 דקות, תלוי בתנועה",
+        distancePrev: "מהמלון לתחנה המרכזית — 10 דק' הליכה", duration: "כ-50 דקות נסיעה",
+        transportOption: "אוטובוס KTEL קו 015 (זול וקבוע) או מונית פרטית (גמיש יותר בשעות)",
         noamScore: 6, maayanScore: 6, familyScore: 7,
         allergyRating: "safe", veganAvailable: true,
-        tip: "אוטובוס 015 · יוצא כל שעה מהתחנה המרכזית. קחו מים!",
+        tip: "יציאות בערך: 08:00, 09:00, 09:30... קחו מים ובדקו לוח זמנים עדכני ב-ktelrodou.gr לפני היציאה.",
       },
       {
         time: "09:30",
         label: "Acropolis of Lindos",
-        detail: "עלייה לאקרופוליס · נוף פנורמי עצור נשימה · ילדים עד 18 חינם!",
+        detail: "עלייה לאקרופוליס · נוף פנורמי עצור נשימה · ילדים עד 18 (לא-אזרחי האיחוד האירופי) חינם בהצגת דרכון",
         icon: Compass, type: "activity",
-        tags: ["WOW", "HP vibes", "ילדים חינם"],
-        cost: "€6 לאדם (ילדים עד 18 חינם)",
+        tags: ["WOW", "ילדים חינם", "יש אפשרות בלי טיפוס"],
+        cost: "€6 לאדם (משוער) · ילדים עד 18 חינם (לאמת בקופה עם דרכון)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Acropolis+of+Lindos",
-        travelTime: "55 דק' מAvalon",
+        travelTime: "55 דק' מ-Avalon",
+        distancePrev: "בכניסה לכפר Lindos", duration: "כ-1.5 שעות",
+        transportOption: "עלייה ברגל (מדרגות אבן, כ-10 דקות טיפוס מתון) או רכיבת חמור ממרכז הכפר — מסורת מקומית, אופציה קלה יותר לילדות שלא רוצות לטפס",
+        altOption: "לילדות שמעדיפות לא לטפס כלל: רכיבת חמורים עד קרוב לפסגה",
         noamScore: 10, maayanScore: 8, familyScore: 10,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "היסטוריה עתיקה + נוף = חוויה כמו Hogwarts castle. נועם חינם!",
-        maayanNote: "נוף עצום, תמונות מלכה, Instagram-perfect · מעיין חינם!",
-        harryPotter: true, wow: true, primaryFor: "noam",
-        tip: "הגיעו לפני 10:00 — פחות קהל. הצל מועט, קחו כובע!",
+        noamNote: "היסטוריה עתיקה + נוף = חוויה שמרגישה כמו טירת פנטזיה",
+        maayanNote: "נוף עצום, תמונות מרשימות · ואם לא בא כוח לטפס — יש חמורים",
+        wow: true, wowLevel: 10, primaryFor: "noam",
+        tip: "הגיעו לפני 10:00 — פחות קהל. אין הרבה צל, קחו כובע ומים.",
       },
       {
         time: "11:00",
         label: "St Paul's Bay",
-        detail: "מפרץ קדוש · מים טורקיז שקופים · שחייה בבוקר",
+        detail: "מפרץ קדוש · מים טורקיז שקופים · שחייה בבוקר, ללא הליכה משמעותית",
         icon: Sun, type: "activity",
         tags: ["חינם", "שחייה", "Photography"],
         cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=St+Paul's+Bay+Lindos",
         travelTime: "2 דקות מהאקרופוליס",
+        distancePrev: "כ-400 מ'", duration: "כ-1 שעה",
         noamScore: 8, maayanScore: 9, familyScore: 10,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "מים שקטים, נוף לאקרופוליס — magical atmosphere",
-        maayanNote: "מים כחולים שקופים — חלומי! תמונות K-Pop aesthetic",
-        wow: true, primaryFor: "family",
-        tip: "הכי יפה בשעות הבוקר — מים שקטים לפני הצהרון",
+        noamNote: "מים שקטים, נוף לאקרופוליס — אווירה מיוחדת",
+        maayanNote: "מים כחולים שקופים — מהיפים באי",
+        wow: true, wowLevel: 9, primaryFor: "family",
+        tip: "הכי יפה בשעות הבוקר — מים שקטים לפני שמתמלא.",
       },
       {
         time: "12:00",
         label: "סמטאות Lindos הלבנות",
-        detail: "בתים לבנים, חנויות מקומיות, תכשיטים — ייחודי לגמרי",
+        detail: "בתים לבנים, חנויות מקומיות, תכשיטים — ייחודי לגמרי, הליכה שטוחה בתוך הכפר",
         icon: Camera, type: "activity",
-        tags: ["Photography", "K-Pop vibes", "קניות"],
+        tags: ["Photography", "קניות", "ללא מאמץ"],
         cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Lindos+village+white+streets",
-        travelTime: "כפר לינדוס",
+        travelTime: "בתוך כפר לינדוס",
+        distancePrev: "צמוד", duration: "כ-1 שעה",
         noamScore: 7, maayanScore: 10, familyScore: 8,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "חנויות מוזיקה קטנות ייתכן — שווה לחקור",
-        maayanNote: "K-Pop vibes מלאים! בתים לבנים = תמונות מושלמות. קניות!",
-        kpop: true, primaryFor: "maayan",
+        maayanNote: "בתים לבנים = תמונות מושלמות. יש גם כמה חנויות תכשיטים ואופנה קטנות",
+        primaryFor: "maayan",
       },
       {
         time: "13:30",
-        label: "ארוחת צהריים — Kalypso Roof Garden",
-        detail: "Rooftop · נוף פנורמי לאקרופוליס ולים · תפריט מדיטרני",
+        label: "ארוחת צהריים — T-Veg",
+        detail: "מסעדה טבעונית 100% ב-Lindos · גג עם נוף לאקרופוליס ולמפרץ · בדרך כלל פתוחה 9:00–15:00 בימות חול (ערב רק שישי-שבת בהזמנה) — הכי בטוח מבחינת האלרגיה כי כל המטבח טבעוני",
         icon: Utensils, type: "food",
-        tags: ["Rooftop", "נוף WOW", "ציינו אלרגיה"],
-        cost: "₪90 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Kalypso+Restaurant+Lindos",
-        travelTime: "כפר לינדוס",
-        noamScore: 7, maayanScore: 8, familyScore: 9,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "ציינו אלרגיה לחלב חמורה! יש אפשרויות בטוחות",
+        tags: ["טבעוני 100%", "Rooftop", "נוף WOW"],
+        cost: "€10–15 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=T-Veg+Lindos+Rhodes",
+        travelTime: "בתוך כפר לינדוס",
+        distancePrev: "כ-200 מ'", duration: "כ-1 שעה",
+        noamScore: 8, maayanScore: 8, familyScore: 9,
+        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
+        noamNote: "מטבח טבעוני מלא — הכי פשוט ובטוח לאלרגיה שנמצא בכל המסלול",
         maayanNote: "לאכול על גג עם נוף לים — חוויה מיוחדת",
-        tip: "ציינו בהזמנה: אלרגיה חמורה לחלב עבור נועם. בקשו ישיבה בצד הים.",
+        wow: true, wowLevel: 8,
+        tip: "מקום קטן ומבוקש בעונה — אם אפשר, התקשרו/הודיעו מראש שמגיעים.",
+        altOption: "Kalypso Roof Garden — נוף מרשים לא פחות לאקרופוליס, אך אינה מסעדה טבעונית מלאה (יש גם בשר/דגים בתפריט) — רק כגיבוי אם T-Veg סגורה, וחובה לציין אלרגיה חמורה במפורש.",
       },
       {
         time: "16:30",
         label: "חזרה לרודוס",
-        detail: "אוטובוס 015 חזרה · 55 דקות",
+        detail: "אוטובוס 015 חזרה",
         icon: MapPin, type: "transport",
-        tags: ["€3"],
-        cost: "€3 לאדם",
+        tags: ["€5.50"],
+        cost: "€5.50 לאדם (מאומת)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Lindos+bus+stop",
-        travelTime: "55 דקות",
+        travelTime: "כ-50 דקות",
+        distancePrev: "—", duration: "כ-50 דקות",
         noamScore: 4, maayanScore: 4, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
       },
       {
         time: "19:00",
         label: "הליכת ערב — עיר עתיקה",
-        detail: "Old Town · תאורת לילה · Harry Potter atmosphere בשיאו",
+        detail: "Old Town · תאורת לילה · ממש ליד המלון, בלי צורך בתחבורה",
         icon: Moon, type: "activity",
-        tags: ["חינם", "Harry Potter", "Photography"],
+        tags: ["חינם", "Photography", "קרוב למלון"],
         cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town+evening",
-        travelTime: "12 דקות מAvalon",
+        travelTime: "2 דקות מ-Avalon",
+        distancePrev: "מהתחנה המרכזית — 10 דק'", duration: "כ-45 דקות",
         noamScore: 9, maayanScore: 8, familyScore: 9,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "HP vibes בלילה — תאורת פנסים על האבנות",
-        maayanNote: "תמונות לילה, חנויות פתוחות, אווירה",
-        harryPotter: true, wow: true,
+        noamNote: "תאורת פנסים על האבנים בלילה — אווירה מיוחדת",
+        maayanNote: "תמונות לילה, חנויות פתוחות",
+        harryPotter: true, wow: true, wowLevel: 8,
       },
       {
         time: "20:30",
-        label: "ארוחת ערב — RuBisCo Fine Dining",
-        detail: "15 דקות מAvalon · עיר עתיקה · הזמינו מראש! ציינו אלרגיה.",
+        label: "ארוחת ערב — ONO",
+        detail: "בעיר העתיקה, כמה דקות מ-Avalon · פתוח עד 22:30 · תפריט טבעוני/צמחוני מסומן, ידידותי לכשרות",
         icon: Utensils, type: "food",
-        tags: ["Fine Dining", "הזמינו מראש", "ציינו אלרגיה"],
-        cost: "₪160 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=RuBisCo+Restaurant+Rhodes",
-        travelTime: "15 דקות מAvalon",
+        tags: ["ציינו אלרגיה", "5 דק' מהמלון"],
+        cost: "€12–18 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות מ-Avalon",
+        distancePrev: "כ-300 מ'", duration: "כ-1 שעה",
         noamScore: 8, maayanScore: 7, familyScore: 8,
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "הזמינו מראש + ציינו אלרגיה חמורה לחלב",
-        maayanNote: "Fine dining experience — צלחות יפות, אווירה מיוחדת",
-        wow: true,
-        tip: "הזמינו 2 ימים מראש! ציינו בדיוק: 'severe dairy allergy'",
+        noamNote: "הזמינו רק מנות מסומנות Vegan וציינו אלרגיה חמורה במפורש",
+        maayanNote: "סיום נעים ליום ה-WOW הגדול",
+        tip: "לא מצאנו מסעדת Fine Dining ברודוס שיכולה להבטיח בבירור העדר זיהום צולב לחלב — אם רוצים לנסות משהו מיוחד יותר, מומלץ להתקשר מראש ולשאול על כך במפורש לפני ההזמנה.",
       },
     ],
+    summary: {
+      safety: "🟢",
+      safetyNote: SAFETY_BOILERPLATE,
+      foodSafety: "🟢",
+      walkingComfort: "🟡",
+      wow: 9,
+      value: 8,
+      noamWillLove: "האקרופוליס עם תחושת המבצר העתיק והנוף המדהים",
+      maayanWillLove: "המים הטורקיז של מפרץ פאולוס הקדוש והסמטאות הלבנות",
+    },
   },
 
-  // ── DAY 3 ─────────────────────────────────────────────────────────────────
+  // ── DAY 3 — Wed Sept 9 ───────────────────────────────────────────────────
   {
     day: 3,
-    date: "ספטמבר 9, 2026",
+    date: "ספטמבר 9, 2026 · יום רביעי",
     dayLabel: "יום שלישי",
     title: "תרבות, טווסים וכוכבים",
-    subtitle: "Filerimos, ארמון האבירים, Knights Street, Profitis Ilias לילה",
+    subtitle: "Filerimos, ארמון האבירים, Knights Street, Profitis Ilias בלילה",
     color: "#16a34a",
     bg: "#f0fdf4",
-    noamHighlight: "Palace of Grand Master + Profitis Ilias astronomy night",
-    maayanHighlight: "Filerimos — טווסים חופשיים! · בעלי חיים ייחודי",
-    familyHighlight: "Knights Street — Diagon Alley · חינם · wow לכולם",
+    noamHighlight: "ארמון הגרנד מאסטר + לילה אסטרונומי ב-Profitis Ilias",
+    maayanHighlight: "Filerimos — טווסים חופשיים, מאומת ואמיתי!",
+    familyHighlight: "ארמון הגרנד מאסטר ורחוב האבירים ממש ליד המלון",
     events: [
       {
         time: "08:30",
-        label: "ארוחת בוקר — Annie's Vegan Kitchen",
-        detail: "3 דקות מAvalon · ארוחת בוקר מלאה לפני היום הארוך",
+        label: "ארוחת בוקר — ONO",
+        detail: "כמה דקות הליכה מ-Avalon · ארוחת בוקר מלאה לפני היום העמוס יותר",
         icon: Coffee, type: "food",
-        tags: ["טבעוני 100%", "3 דק' מהמלון", "בטוח לאלרגיה"],
-        cost: "₪40 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Annie's+Vegan+Kitchen+Rhodes",
-        travelTime: "3 דקות הליכה",
-        noamScore: 9, maayanScore: 8, familyScore: 9,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "בטוח לחלוטין — ארוחת בוקר ללא מתח אלרגיה",
-        maayanNote: "Smoothie bowls, אווירה מושלמת לתחילת יום",
-        primaryFor: "family",
+        tags: ["טבעוני מסומן", "קרוב למלון", "ציינו אלרגיה"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות הליכה",
+        distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
+        noamScore: 8, maayanScore: 7, familyScore: 8,
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        noamNote: "מקום מוכר וכבר בטוח מיום 1 — לא מתנסים בחדש לפני יום עמוס",
+        maayanNote: "פנקייק נוטלה טבעוני שוב? למה לא",
       },
       {
         time: "09:30",
-        label: "Filerimos — מנזר, טווסים ונוף לAvalon",
-        detail: "14 ק\"מ · מונית €12 · מנזר מהמאה ה-14 · טווסים הולכים חופשי בשביל!",
+        label: "Filerimos — מנזר, טווסים ונוף",
+        detail: "כ-14 ק\"מ · מונית ~€12–15 (משוער) · מנזר מהמאה ה-14 · טווסים הולכים חופשי בשביל — מאומת בחיפוש עדכני, לא סיפור עירוני",
         icon: Compass, type: "activity",
-        tags: ["WOW", "בעלי חיים", "טווסים!", "Photography"],
-        cost: "€3 כניסה · €12 מונית הלוך",
+        tags: ["WOW", "בעלי חיים — מאומת", "טווסים!"],
+        cost: "€3 כניסה (משוער) · €12–15 מונית הלוך (משוער)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Filerimos+Rhodes+Greece",
         travelTime: "20 דקות מונית",
+        distancePrev: "מהמלון — 14 ק\"מ", duration: "כ-1.5 שעות",
         noamScore: 7, maayanScore: 10, familyScore: 9,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "מנזר היסטורי מרשים + נוף לכל האי — atmospheric",
-        maayanNote: "טווסים הולכים חופשי! בעלי חיים ייחודי לגמרי — מעיין תשגע!",
-        wow: true, primaryFor: "maayan",
-        tip: "הטווסים מסתובבים חופשי בשביל! הגיעו ב-09:30 לפני החום.",
+        noamNote: "מנזר היסטורי מרשים + נוף לכל האי",
+        maayanNote: "טווסים הולכים חופשי בשביל — לא אגדה, מאומת בביקורות עדכניות. מעיין תשגע!",
+        wow: true, wowLevel: 9, primaryFor: "maayan",
+        tip: "הטווסים מסתובבים חופשי בשביל! הגיעו ב-09:30 לפני החום. השביל שטוח ונגיש, בלי טיפוס.",
       },
       {
         time: "13:00",
-        label: "ארוחת צהריים — Annie's Vegan Kitchen",
-        detail: "חזרה לרודוס · 3 דקות מAvalon · מנוחה בין לבין",
+        label: "ארוחת צהריים — ONO",
+        detail: "חזרה לעיר העתיקה · כמה דקות מ-Avalon",
         icon: Utensils, type: "food",
-        tags: ["טבעוני 100%", "קרוב", "בטוח"],
-        cost: "₪45 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Annie's+Vegan+Kitchen+Rhodes",
-        travelTime: "3 דקות מAvalon",
+        tags: ["טבעוני מסומן", "קרוב", "ציינו אלרגיה"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות מ-Avalon",
+        distancePrev: "מפילרימוס — 20 דק' מונית", duration: "כ-45 דקות",
         noamScore: 8, maayanScore: 8, familyScore: 9,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "100% בטוח — אכול בלי לשאול שאלות",
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        noamNote: "עקביות = פחות סיכון עם אלרגיה חמורה",
         maayanNote: "מגוון טבעוני צבעוני",
+        altOption: "אם רוצים חוויה מיוחדת: Annie's Vegan Food & Bar (Pop-up, 100% טבעוני) — פתוחה בדרך כלל בימי ד' 11:00–15:00 לפי המידע שמצאנו, אך זה Pop-up שדורש הזמנה מראש בוואטסאפ ולא מאומת שעדיין פעיל בקיץ 2026. יש לוודא לפני שסומכים על זה.",
       },
       {
         time: "14:30",
-        label: "Palace of the Grand Master — Hogwarts Castle",
-        detail: "ארמון הגרנד מאסטר · עיר עתיקה · 13 דקות מAvalon · ילדים עד 18 חינם!",
+        label: "Palace of the Grand Master",
+        detail: "ארמון הגרנד מאסטר · ממש בעיר העתיקה, כמה דקות מ-Avalon · ילדים עד 18 (לא-אזרחי האיחוד האירופי) חינם בהצגת דרכון",
         icon: BookOpen, type: "activity",
-        tags: ["WOW", "Harry Potter", "ילדים חינם", "Photography"],
-        cost: "€8 לאדם (ילדים עד 18 חינם)",
+        tags: ["WOW", "Harry Potter", "ילדים חינם", "צמוד למלון"],
+        cost: "€8 לאדם (משוער) · ילדים עד 18 חינם (לאמת בקופה עם דרכון)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Palace+of+the+Grand+Master+Rhodes",
-        travelTime: "13 דקות הליכה",
+        travelTime: "2 דקות הליכה מ-Avalon",
+        distancePrev: "כ-150 מ'", duration: "כ-1.5 שעות",
         noamScore: 10, maayanScore: 7, familyScore: 9,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "HOGWARTS! המקום הכי HP ברודוס. נועם חינם!",
-        maayanNote: "ארמון ציורי, תמונות יפות, אווירה מיוחדת · מעיין חינם!",
-        harryPotter: true, wow: true, primaryFor: "noam",
-        tip: "נועם ומעיין חינם! מסדרונות ארוכים, חדרי אבן — Hogwarts ממש.",
+        noamNote: "מסדרונות אבן ארוכים, חדרי אבן — אווירת טירה עתיקה מלאה",
+        maayanNote: "ארמון ציורי, תמונות יפות",
+        harryPotter: true, wow: true, wowLevel: 9, primaryFor: "noam",
+        tip: "נועם ומעיין חינם עם דרכון! זה כמעט חצר אחורית של המלון — אין צורך בתכנון נסיעה.",
       },
       {
         time: "16:00",
-        label: "Street of the Knights — Diagon Alley",
-        detail: "הרחוב ההיסטורי של אבירי יוחנן · אבן עתיקה · HP vibes שלמים",
+        label: "Street of the Knights",
+        detail: "הרחוב ההיסטורי של אבירי יוחנן · אבן עתיקה · ממש ליד ארמון הגרנד מאסטר",
         icon: Compass, type: "activity",
-        tags: ["חינם", "Harry Potter", "Photography"],
+        tags: ["חינם", "Harry Potter", "צמוד למלון"],
         cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Street+of+the+Knights+Rhodes",
-        travelTime: "ליד ארמון הגרנד מאסטר",
+        travelTime: "מיד ליד ארמון הגרנד מאסטר",
+        distancePrev: "צמוד", duration: "כ-30 דקות",
         noamScore: 9, maayanScore: 8, familyScore: 9,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "DIAGON ALLEY! צלם בכניסות הסמטאות",
-        maayanNote: "תמונות בסגנון K-Pop + HP hybrid — unique",
-        harryPotter: true, wow: true,
+        noamNote: "צלמו בכניסות הסמטאות — האבן העתיקה מרגישה קולנועית",
+        harryPotter: true, wow: true, wowLevel: 8,
       },
       {
         time: "17:00",
         label: "מנוחה במלון — הכנה ללילה הגדול",
         detail: "17:00–19:00 · חיוני לפני Profitis Ilias · הורידו Stellarium עכשיו",
         icon: Moon, type: "rest",
-        tags: ["חשוב", "הכנה", "הורידו Stellarium"],
+        tags: ["חשוב", "הכנה"],
         cost: null,
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
         travelTime: "המלון",
+        distancePrev: "—", duration: "כ-2 שעות",
         noamScore: 6, maayanScore: 5, familyScore: 6,
         allergyRating: "safe", veganAvailable: true,
         noamNote: "הורד Stellarium עכשיו! תכנן מה תחפש בשמיים",
-        maayanNote: "מנוחה + תכנון מחר",
         astronomy: true,
         tip: "הורידו Stellarium (חינם), SkySafari, Sky Guide עכשיו — בפסגה קליטה חלשה!",
       },
       {
-        time: "20:00",
-        label: "ארוחת ערב — T Veg",
-        detail: "5 דקות מAvalon · ארוחה קלה לפני הנסיעה לProfitis Ilias",
+        time: "19:30",
+        label: "ארוחת ערב — ONO",
+        detail: "ארוחה קלה וממוקדת לפני נסיעת הלילה ל-Profitis Ilias",
         icon: Utensils, type: "food",
-        tags: ["טבעוני", "מהיר", "5 דק' מהמלון"],
-        cost: "₪55 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=T+Veg+Rhodes",
+        tags: ["מהיר", "5 דק' מהמלון"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
+        distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
         noamScore: 7, maayanScore: 7, familyScore: 8,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "ארוחה בטוחה לפני הכוכבים — ללא חלב",
-        maayanNote: "מהיר ומשביע לפני הלילה",
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        noamNote: "ארוחה קלה לפני הכוכבים — לא כבדה מדי",
       },
       {
         time: "21:00",
         label: "יציאה ל-Profitis Ilias",
-        detail: "מונית מAvalon · ~€20 · 45 דקות · גובה 798 מ'",
+        detail: "מונית מ-Avalon · גובה 798 מ'",
         icon: Navigation, type: "transport",
-        tags: ["Astronomy", "לילה", "חשוב"],
-        cost: "€20 מונית",
+        tags: ["Astronomy", "לילה", "הזמינו מונית מראש"],
+        cost: "€20–25 מונית (משוער) הלוך",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Profitis+Ilias+Rhodes",
         travelTime: "45 דקות",
+        distancePrev: "—", duration: "45 דקות נסיעה",
+        transportOption: "מונית פרטית מוזמנת מראש — מומלץ להזמין גם את הנסיעה חזרה מראש, לא לסמוך על מציאת מונית באתר בלילה",
+        safetyNote: "לא אותר מידע ספציפי המצביע על בעיה בטיחותית באתר עצמו. בכל זאת: הזמינו מונית הלוך-חזור מראש, ודאו טלפון טעון וכיסוי סלולרי, ואל תתפצלו כקבוצה.",
         noamScore: 9, maayanScore: 7, familyScore: 8,
         allergyRating: "safe", veganAvailable: true,
         astronomy: true,
@@ -434,91 +548,105 @@ const DAYS: {
       {
         time: "21:45",
         label: "Profitis Ilias — ספירת כוכבים",
-        detail: "798 מטר · Milky Way גלוי · אפלה מוחלטת · אין אורות עיר",
+        detail: "798 מטר · Milky Way גלוי · אפלה יחסית · אין אורות עיר קרובים",
         icon: Telescope, type: "activity",
         tags: ["Astronomy", "WOW", "Milky Way", "נועם-highlight"],
         cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Profitis+Ilias+summit+Rhodes",
         travelTime: "798 מ' גובה",
+        distancePrev: "—", duration: "כ-1.5 שעות",
+        safetyNote: "כמו בכל אתר מבודד בלילה — לא מומלץ להישאר לבד או להתרחק מהקבוצה. אין תאורת רחוב באתר, הביאו פנס.",
         noamScore: 10, maayanScore: 8, familyScore: 10,
         allergyRating: "safe", veganAvailable: true,
         noamNote: "ASTRONOMY WOW! Milky Way בעין רגילה. חוויה שתישאר כל החיים",
-        maayanNote: "כוכבים יפים + ביחד עם המשפחה בחושך — מרגש",
-        astronomy: true, wow: true, profitisIlias: true, primaryFor: "noam",
+        maayanNote: "כוכבים יפים ביחד עם המשפחה בחושך — מרגש",
+        astronomy: true, wow: true, wowLevel: 10, profitisIlias: true, primaryFor: "noam",
         tip: "הורד Stellarium מראש · ספטמבר = Milky Way בשיא. תנו לעיניים 20 דק' להתרגל.",
       },
       {
         time: "23:45",
         label: "חזרה למלון",
-        detail: "מונית חזרה לAvalon · ~€20 · 45 דקות",
+        detail: "מונית חזרה ל-Avalon (מוזמנת מראש)",
         icon: Hotel, type: "transport",
-        tags: ["לילה", "מונית"],
-        cost: "€20 מונית",
+        tags: ["לילה", "מונית מוזמנת מראש"],
+        cost: "€20–25 מונית (משוער)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
         travelTime: "45 דקות",
+        distancePrev: "—", duration: "45 דקות",
         noamScore: 4, maayanScore: 4, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
       },
     ],
+    summary: {
+      safety: "🟢",
+      safetyNote: SAFETY_BOILERPLATE + " נסיעת הלילה להר מחייבת מונית מוזמנת מראש הלוך וחזור.",
+      foodSafety: "🟢",
+      walkingComfort: "🟢",
+      wow: 9,
+      value: 7,
+      noamWillLove: "מסדרונות ארמון הגרנד מאסטר ולילה עם שביל החלב בפרופיטיס אליאס",
+      maayanWillLove: "הטווסים החופשיים בפילרימוס",
+    },
   },
 
-  // ── DAY 4 ─────────────────────────────────────────────────────────────────
+  // ── DAY 4 — Thu Sept 10 ──────────────────────────────────────────────────
   {
     day: 4,
-    date: "ספטמבר 10, 2026",
+    date: "ספטמבר 10, 2026 · יום חמישי",
     dayLabel: "יום רביעי",
     title: "יום עזיבה — קניות וטיסה",
-    subtitle: "בוקר קניות, ארוחה אחרונה, טיסה הביתה",
+    subtitle: "בוקר קניות, ארוחה אחרונה, טיסה הביתה. לא ישנים בלילה של ה-10.",
     color: "#ca8a04",
     bg: "#fef9ec",
-    noamHighlight: "חנויות Grunge + Rock Merchandise בדרך לשדה",
+    noamHighlight: "ThriftIT (ליד המלון) + חנויות Grunge ב'עיר החדשה'",
     maayanHighlight: "Zara, Bershka, Stradivarius — K-Pop fashion haul",
-    familyHighlight: "Annie's breakfast — ארוחת פרידה מושלמת",
+    familyHighlight: "ONO — ארוחת פרידה מוכרת ובטוחה",
     events: [
       {
         time: "08:30",
-        label: "ארוחת בוקר — Annie's Vegan Kitchen",
-        detail: "ארוחה אחרונה · 3 דקות מAvalon · פינוק סיום הטיול",
+        label: "ארוחת בוקר — ONO",
+        detail: "ארוחה אחרונה · 5 דקות מ-Avalon · כבר מוכר ובטוח",
         icon: Coffee, type: "food",
-        tags: ["טבעוני 100%", "אחרון", "בטוח"],
-        cost: "₪40 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Annie's+Vegan+Kitchen+Rhodes",
-        travelTime: "3 דקות הליכה",
-        noamScore: 9, maayanScore: 8, familyScore: 9,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "ארוחת פרידה בטוחה לחלוטין",
-        maayanNote: "Açaí bowl אחרון! לשמור זיכרון",
-        primaryFor: "family",
+        tags: ["טבעוני מסומן", "אחרון", "ציינו אלרגיה"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות הליכה",
+        distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
+        noamScore: 8, maayanScore: 7, familyScore: 8,
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        maayanNote: "פנקייק נוטלה אחרון! לשמור זיכרון",
       },
       {
         time: "09:30",
         label: "קניות — Zara, Bershka, Pull&Bear, Stradivarius",
-        detail: "כולן ב-Mandraki Area · 8-10 דקות מAvalon · Y2K + Grunge + K-Pop",
+        detail: "כולן ב'עיר החדשה' סביב Mandraki · הליכה ~15–20 דקות מהעיר העתיקה (המלון), או מונית קצרה · Y2K + Grunge + K-Pop",
         icon: ShoppingBag, type: "shopping",
         tags: ["Y2K", "Grunge", "K-Pop Fashion"],
         cost: "לפי קניות",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Mandraki+shopping+Rhodes",
-        travelTime: "8-10 דקות הליכה",
+        travelTime: "15–20 דקות הליכה מ-Avalon (העיר החדשה) או מונית קצרה €6–8 (משוער)",
+        distancePrev: "כ-1.3 ק\"מ", duration: "כ-2 שעות",
         noamScore: 7, maayanScore: 10, familyScore: 8,
         allergyRating: "safe", veganAvailable: true,
         noamNote: "Grunge + Rock aesthetic בBershka/Pull&Bear — בדוק T-shirts",
         maayanNote: "K-Pop fashion HAUL! Zara + Stradivarius = paradise",
-        kpop: true, primaryFor: "maayan",
-        tip: "Zara → Bershka → Pull&Bear → Stradivarius — הכל ב-10 דקות הליכה",
+        kpop: true, wowLevel: 6, primaryFor: "maayan",
+        altOption: "קרוב יותר למלון, בלי לנסוע כלל: ThriftIT (וינטג'/יד-שנייה, Grunge) ו-Eclectia (בוטיק מקומי) בעיר העתיקה עצמה",
+        tip: "Zara → Bershka → Pull&Bear → Stradivarius — כולן קרובות זו לזו ב'עיר החדשה'.",
       },
       {
         time: "11:30",
-        label: "ארוחת צהריים — T Veg",
-        detail: "5 דקות מAvalon · ארוחה קלה לפני הנסיעה לשדה",
+        label: "ארוחת צהריים — ONO",
+        detail: "ארוחה אחרונה לפני החזרה למלון ולשדה · כמה דקות הליכה מ-Avalon",
         icon: Utensils, type: "food",
-        tags: ["טבעוני", "מהיר"],
-        cost: "₪40 לאדם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=T+Veg+Rhodes",
-        travelTime: "5 דקות הליכה",
+        tags: ["טבעוני מסומן", "אחרון"],
+        cost: "€8–12 לאדם (משוער)",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        travelTime: "5 דקות מ-Avalon",
+        distancePrev: "מ'עיר החדשה' — 15-20 דק'", duration: "כ-45 דקות",
         noamScore: 7, maayanScore: 7, familyScore: 8,
-        allergyRating: "safe", veganAvailable: true, veganFriendly: true,
-        noamNote: "ארוחה בטוחה לפני הטיסה",
-        maayanNote: "מהיר ומשביע",
+        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
+        noamNote: "ארוחה בטוחה ומוכרת לפני הטיסה",
       },
       {
         time: "12:15",
@@ -529,6 +657,7 @@ const DAYS: {
         cost: null,
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
         travelTime: "המלון",
+        distancePrev: "—", duration: "20 דקות",
         noamScore: 3, maayanScore: 4, familyScore: 4,
         allergyRating: "safe", veganAvailable: true,
         tip: "בקשו late checkout — לפעמים מאפשרים עד 13:00",
@@ -536,15 +665,16 @@ const DAYS: {
       {
         time: "12:40",
         label: "מונית לשדה התעופה",
-        detail: "מAvalon לDiagoras Airport · €15 · 20 דקות",
+        detail: "מ-Avalon (עיר עתיקה) ל-Diagoras Airport",
         icon: Navigation, type: "transport",
-        tags: ["חשוב"],
-        cost: "€15 מונית",
+        tags: ["חשוב", "מאומת"],
+        cost: "€27–35 מונית (מחיר רשמי מהשדה, מאומת)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Airport+Diagoras",
-        travelTime: "20 דקות",
+        travelTime: "כ-25 דקות",
+        distancePrev: "כ-14 ק\"מ", duration: "25 דקות",
         noamScore: 3, maayanScore: 3, familyScore: 4,
         allergyRating: "safe", veganAvailable: true,
-        tip: "הזמינו מונית דרך קבלת המלון מראש!",
+        tip: "הזמינו מונית דרך קבלת המלון מראש! ודאו מונה או מחיר קבוע.",
       },
       {
         time: "15:10",
@@ -555,45 +685,50 @@ const DAYS: {
         cost: "כלול",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Airport+Diagoras",
         travelTime: "טיסה",
+        distancePrev: "—", duration: "—",
         noamScore: 6, maayanScore: 7, familyScore: 7,
         allergyRating: "safe", veganAvailable: true,
         noamNote: "כבר מתכנן לאן לצפות בכוכבים בפעם הבאה",
         maayanNote: "כבר מתכננת K-Pop tour לסיאול",
       },
     ],
+    summary: {
+      safety: "🟢",
+      safetyNote: SAFETY_BOILERPLATE,
+      foodSafety: "🟢",
+      walkingComfort: "🟢",
+      wow: 6,
+      value: 7,
+      noamWillLove: "חיפוש פריטי Grunge/Rock ב-ThriftIT ובחנויות הרשת",
+      maayanWillLove: "האולינג של האופנה ב-Zara/Stradivarius/Bershka",
+    },
   },
 ];
 
 // ─── Discovery data ────────────────────────────────────────────────────────────
 const MUSIC_DISCOVERY = [
-  { name: "Manolis Music Store",   type: "guitar",  note: "גיטרות + כלי נגינה · New Town", mapsUrl: "https://www.google.com/maps/search/?api=1&query=music+store+Rhodes+Greece", noamScore: 9 },
-  { name: "Vinyl & Records Shop",  type: "vinyl",   note: "תקליטים + Rock · עיר עתיקה",    mapsUrl: "https://www.google.com/maps/search/?api=1&query=vinyl+records+Rhodes+Greece",  noamScore: 10 },
-  { name: "Rhodes Music Centre",   type: "store",   note: "כלי נגינה, מיתרים, אביזרים",     mapsUrl: "https://www.google.com/maps/search/?api=1&query=music+instruments+Rhodes",     noamScore: 8 },
-  { name: "Rock Merchandise Shop", type: "merch",   note: "חולצות להקות, רוק מרצ'נדייז",   mapsUrl: "https://www.google.com/maps/search/?api=1&query=rock+merchandise+Rhodes",       noamScore: 9 },
-  { name: "Alternative Music Bar", type: "live",    note: "מוזיקה חיה · Rock · New Town",    mapsUrl: "https://www.google.com/maps/search/?api=1&query=live+music+rock+bar+Rhodes",   noamScore: 9 },
-  { name: "Street Musicians",      type: "live",    note: "מוזיקאים רחוב · עיר עתיקה בערב", mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town+street+music", noamScore: 7 },
+  { name: "Sakellaridis Music Shop", type: "guitar", note: "כלי נגינה, פועלת מ-1947 · Museum Square 9, עיר עתיקה · מאומת בחיפוש עדכני", mapsUrl: "https://www.google.com/maps/search/?api=1&query=Sakellaridis+Music+Shop+Rhodes", noamScore: 9 },
+  { name: "Karavellakis Music House", type: "store", note: "כלי נגינה ואביזרים ברודוס, מ-1974 · מיקום המדויק לא אומת במלואו — כדאי לבדוק לפני הליכה ייעודית", mapsUrl: "https://www.google.com/maps/search/?api=1&query=Karavellakis+Music+House+Rhodes", noamScore: 7 },
+  { name: "מוזיקאי רחוב בעיר העתיקה", type: "live", note: "בערבי קיץ אפשר להיתקל במוזיקאי רחוב בסמטאות — לא מובטח, תלוי מזל וזמן", mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town+street+music", noamScore: 6 },
 ];
 
 const ANIMAL_DISCOVERY = [
-  { name: "Filerimos Peacocks",      note: "טווסים חופשיים בשביל המנזר — חוויה ייחודית!",         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Filerimos+Rhodes+Greece",          maayanScore: 10 },
-  { name: "Valley of the Butterflies", note: "אלפי פרפרים · 25 ק\"מ מרודוס · ביולי-ספטמבר",      mapsUrl: "https://www.google.com/maps/search/?api=1&query=Valley+of+the+Butterflies+Rhodes",  maayanScore: 9  },
+  { name: "Filerimos Peacocks",      note: "טווסים חופשיים בשביל המנזר — מאומת בביקורות עדכניות, לא רק סיפור",         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Filerimos+Rhodes+Greece",          maayanScore: 10 },
+  { name: "Valley of the Butterflies", note: "אלפי פרפרים · כ-25 ק\"מ מרודוס · עונתי (בעיקר יולי-ספטמבר, כדאי לוודא)",      mapsUrl: "https://www.google.com/maps/search/?api=1&query=Valley+of+the+Butterflies+Rhodes",  maayanScore: 9  },
   { name: "Kallithea Springs",       note: "ים שקוף + דגים לצד ספינות טבילה",                       mapsUrl: "https://www.google.com/maps/search/?api=1&query=Kallithea+Springs+Rhodes",          maayanScore: 8  },
-  { name: "Rhodes Aquarium",         note: "מוזיאון ימי · חיות ים בייחוד לילדים",                   mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Aquarium+Greece",            maayanScore: 8  },
-  { name: "Donkey Rides (Lindos)",   note: "חמורים בלינדוס — מסורת מקומית · ב-Acropolis path",      mapsUrl: "https://www.google.com/maps/search/?api=1&query=donkey+rides+Lindos+Rhodes",        maayanScore: 9  },
-  { name: "Faliraki Wildlife Park",  note: "פארק חיות · קרוב לרודוס · משפחתי",                     mapsUrl: "https://www.google.com/maps/search/?api=1&query=Faliraki+wildlife+park+Rhodes",     maayanScore: 8  },
+  { name: "Donkey Rides (Lindos)",   note: "חמורים בלינדוס — מסורת מקומית, גם אלטרנטיבה לטיפוס לאקרופוליס",      mapsUrl: "https://www.google.com/maps/search/?api=1&query=donkey+rides+Lindos+Rhodes",        maayanScore: 9  },
 ];
 
 const SHOPPING_DISCOVERY = [
-  // Fashion
-  { name: "Zara",            style: "Y2K Fashion",        area: "New Town",   distance: "8 דק'",  noamScore: 6, maayanScore: 9,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Zara+Rhodes+Greece" },
-  { name: "Bershka",         style: "Y2K + Grunge",       area: "New Town",   distance: "9 דק'",  noamScore: 8, maayanScore: 8,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Bershka+Rhodes+Greece" },
-  { name: "Pull&Bear",       style: "Grunge + Street",    area: "New Town",   distance: "9 דק'",  noamScore: 9, maayanScore: 7,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Pull+Bear+Rhodes+Greece" },
-  { name: "Stradivarius",    style: "Y2K + Boho",         area: "New Town",   distance: "10 דק'", noamScore: 5, maayanScore: 10, mapsUrl: "https://www.google.com/maps/search/?api=1&query=Stradivarius+Rhodes+Greece" },
-  { name: "H&M",             style: "Y2K Budget",         area: "New Town",   distance: "7 דק'",  noamScore: 5, maayanScore: 8,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=HM+Rhodes+Greece" },
-  // Noam's stores
-  { name: "Vintage Shops",   style: "Vintage Y2K + Grunge", area: "עיר עתיקה", distance: "15 דק'", noamScore: 10, maayanScore: 7, mapsUrl: "https://www.google.com/maps/search/?api=1&query=vintage+shops+Rhodes+Old+Town" },
-  { name: "Rock Merch Shop", style: "Band T-Shirts + Rock", area: "New Town",  distance: "10 דק'", noamScore: 10, maayanScore: 5, mapsUrl: "https://www.google.com/maps/search/?api=1&query=rock+merchandise+Rhodes" },
-  { name: "Alternative Store", style: "Grunge + Alternative", area: "עיר עתיקה", distance: "15 דק'", noamScore: 9, maayanScore: 6, mapsUrl: "https://www.google.com/maps/search/?api=1&query=alternative+fashion+Rhodes" },
+  // Old Town — steps from Avalon, verified
+  { name: "ThriftIT",   style: "וינטג' / יד-שנייה + Grunge", area: "עיר עתיקה — ליד המלון", distance: "5 דק'",  noamScore: 9, maayanScore: 6, mapsUrl: "https://www.google.com/maps/search/?api=1&query=ThriftIT+Rhodes" },
+  { name: "Eclectia",   style: "בוטיק מקומי, סגנון ייחודי",   area: "עיר עתיקה — ליד המלון", distance: "5 דק'",  noamScore: 6, maayanScore: 7, mapsUrl: "https://www.google.com/maps/search/?api=1&query=Eclectia+Rhodes" },
+  // New Town — a real walk or short taxi from Avalon
+  { name: "Zara",            style: "Y2K Fashion",        area: "עיר חדשה — Mandraki",   distance: "15–18 דק'",  noamScore: 6, maayanScore: 9,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Zara+Rhodes+Greece" },
+  { name: "Bershka",         style: "Y2K + Grunge",       area: "עיר חדשה — Mandraki",   distance: "15–18 דק'",  noamScore: 8, maayanScore: 8,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Bershka+Rhodes+Greece" },
+  { name: "Pull&Bear",       style: "Grunge + Street",    area: "עיר חדשה — Mandraki",   distance: "15–18 דק'",  noamScore: 9, maayanScore: 7,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=Pull+Bear+Rhodes+Greece" },
+  { name: "Stradivarius",    style: "Y2K + Boho",         area: "עיר חדשה — Mandraki",   distance: "18–20 דק'", noamScore: 5, maayanScore: 10, mapsUrl: "https://www.google.com/maps/search/?api=1&query=Stradivarius+Rhodes+Greece" },
+  { name: "H&M",             style: "Y2K Budget",         area: "עיר חדשה — Mandraki",   distance: "15 דק'",  noamScore: 5, maayanScore: 8,  mapsUrl: "https://www.google.com/maps/search/?api=1&query=HM+Rhodes+Greece" },
 ];
 
 // ─── Hero images ──────────────────────────────────────────────────────────────
@@ -612,20 +747,21 @@ const TYPE_IMAGE: Record<string, string> = {
 const EVENT_IMAGE_OVERRIDES: Record<string, string> = {
   "נחיתה":                   "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=800&q=70",
   "Avalon Boutique Hotel":   "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=70",
-  "Annie's":                 "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
-  "Medieval City":           "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
+  "ONO":                     "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
+  "שוטטות":                  "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
   "חומות העיר העתיקה":       "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
-  "T Veg":                   "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
-  "לינדוס":                  "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=70",
-  "Lindos Acropolis":        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=70",
+  "RuBisCo":                 "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=70",
+  "Sakellaridis":            "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=800&q=70",
+  "Lindos":                  "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=800&q=70",
+  "Acropolis of Lindos":     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=70",
   "St Paul's Bay":           "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=70",
-  "Kalypso":                 "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=70",
-  "RuBisCo":                 "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=70",
+  "T-Veg":                   "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=70",
   "פילרימוס":                "https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=800&q=70",
+  "Filerimos":                "https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=800&q=70",
   "Palace of the Grand Master": "https://images.unsplash.com/photo-1569587112025-0d460e81a126?auto=format&fit=crop&w=800&q=70",
-  "Knights Street":          "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
+  "Street of the Knights":  "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
   "Profitis Ilias":          "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=800&q=70",
-  "קניות — רחוב דיאגוראס":  "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=70",
+  "קניות — Zara":            "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=70",
 };
 
 function getEventImage(label: string, type: string): string {
@@ -677,9 +813,9 @@ function PrimaryBadge({ primaryFor }: { primaryFor?: "noam" | "maayan" | "family
 function AllergyBadge({ rating }: { rating?: "safe" | "ok" | "ask" }) {
   if (!rating) return null;
   const map = {
-    safe: { label: "✓ בטוח לנועם", color: "#15803d", bg: "#f0fdf4" },
-    ok:   { label: "⚠ ציין אלרגיה", color: "#b45309", bg: "#fef9ec" },
-    ask:  { label: "✗ שאל מלצר",   color: "#dc2626", bg: "#fef2f2" },
+    safe: { label: "✓ מטבח טבעוני מלא", color: "#15803d", bg: "#f0fdf4" },
+    ok:   { label: "⚠ ציינו אלרגיה + בקשו זהירות", color: "#b45309", bg: "#fef9ec" },
+    ask:  { label: "✗ לא מאומת כבטוח — שאלו לפני", color: "#dc2626", bg: "#fef2f2" },
   };
   const m = map[rating];
   return (
@@ -695,7 +831,7 @@ function EventRow({ e }: { e: any }) {
   const [expanded, setExpanded] = useState(false);
   const s = TYPE_STYLE[e.type as string] ?? TYPE_STYLE.activity;
   const Icon = e.icon as React.FC<{ className?: string; style?: React.CSSProperties }>;
-  const hasExtra = e.tip || e.noamNote || e.maayanNote;
+  const hasExtra = e.tip || e.noamNote || e.maayanNote || e.altOption || e.safetyNote || e.transportOption || e.duration || e.distancePrev;
 
   return (
     <div className="flex gap-3">
@@ -790,8 +926,8 @@ function EventRow({ e }: { e: any }) {
                 </div>
               )}
 
-              {/* Allergy */}
-              {e.allergyRating && (
+              {/* Allergy — only meaningful for food events */}
+              {e.type === "food" && e.allergyRating && (
                 <div className="mt-2">
                   <AllergyBadge rating={e.allergyRating} />
                 </div>
@@ -826,6 +962,31 @@ function EventRow({ e }: { e: any }) {
               {/* Expanded */}
               {expanded && (
                 <div className="mt-2 space-y-2">
+                  {(e.duration || e.distancePrev) && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-xl p-2.5" style={{ background: "#fafafa" }}>
+                      {e.duration && (
+                        <div className="flex items-center gap-1.5">
+                          <Hourglass className="h-3.5 w-3.5" style={{ color: "#737373" }} />
+                          <span style={{ fontSize: 11, color: "#525252" }}>משך: {e.duration}</span>
+                        </div>
+                      )}
+                      {e.distancePrev && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" style={{ color: "#737373" }} />
+                          <span style={{ fontSize: 11, color: "#525252" }}>מרחק מהקודם: {e.distancePrev}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {e.transportOption && (
+                    <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fff7ed" }}>
+                      <Navigation className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#c2410c" }} />
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: "#c2410c", marginBottom: 2 }}>אפשרות תחבורה</p>
+                        <span style={{ fontSize: 12, color: "#9a3412", lineHeight: 1.5 }}>{e.transportOption}</span>
+                      </div>
+                    </div>
+                  )}
                   {e.noamNote && (
                     <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#f5f3ff" }}>
                       <Star className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#7c3aed" }} />
@@ -850,6 +1011,24 @@ function EventRow({ e }: { e: any }) {
                       <span style={{ fontSize: 12, color: "#92400e", lineHeight: 1.5 }}>{e.tip}</span>
                     </div>
                   )}
+                  {e.altOption && (
+                    <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#f0f9ff" }}>
+                      <RefreshCw className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#0284c7" }} />
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: "#0284c7", marginBottom: 2 }}>אפשרות חלופית</p>
+                        <span style={{ fontSize: 12, color: "#075985", lineHeight: 1.5 }}>{e.altOption}</span>
+                      </div>
+                    </div>
+                  )}
+                  {e.safetyNote && (
+                    <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fef2f2" }}>
+                      <ShieldAlert className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#dc2626" }} />
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 2 }}>הערת בטיחות</p>
+                        <span style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5 }}>{e.safetyNote}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -860,63 +1039,75 @@ function EventRow({ e }: { e: any }) {
   );
 }
 
-// ─── Astronomy section ─────────────────────────────────────────────────────────
-function AstronomySection() {
+// ─── Day summary card ──────────────────────────────────────────────────────────
+function DaySummaryCard({ summary }: { summary: DaySummary }) {
+  const statusRow = (icon: string, label: string, value: string) => (
+    <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #f8f8f8" }}>
+      <span style={{ fontSize: 13, color: "#525252" }}>{icon} {label}</span>
+      <span style={{ fontSize: 15 }}>{value}</span>
+    </div>
+  );
+  return (
+    <div className="rounded-2xl p-4" style={{ border: "1px solid #f0f0f0", background: "#fff" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <ShieldCheck className="h-4 w-4" style={{ color: "#171717" }} />
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#171717" }}>סיכום היום</span>
+      </div>
+      {statusRow("", "סטטוס בטיחות", summary.safety)}
+      {statusRow("", "Food Safety", summary.foodSafety)}
+      {statusRow("", "Walking Comfort", summary.walkingComfort)}
+      <div className="py-2 space-y-1.5" style={{ borderBottom: "1px solid #f8f8f8" }}>
+        <ScoreBar score={summary.wow}   color="#ca8a04" label="WOW" />
+        <ScoreBar score={summary.value} color="#16a34a" label="שווה כסף" />
+      </div>
+      <div className="pt-2 space-y-1.5">
+        <p style={{ fontSize: 12, color: "#7c3aed" }}><strong>נועם צפויה לאהוב:</strong> {summary.noamWillLove}</p>
+        <p style={{ fontSize: 12, color: "#ec4899" }}><strong>מעיין צפויה לאהוב:</strong> {summary.maayanWillLove}</p>
+      </div>
+      <div className="mt-3 flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fafafa" }}>
+        <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#737373" }} />
+        <span style={{ fontSize: 11, color: "#737373", lineHeight: 1.5 }}>{summary.safetyNote}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Trip safety banner ────────────────────────────────────────────────────────
+function TripSafetyBanner() {
   const [open, setOpen] = useState(false);
   return (
     <div>
       <button onClick={() => setOpen(v => !v)}
         className="flex w-full cursor-pointer items-center justify-between rounded-2xl p-4"
-        style={{ background: "#0f172a", border: "none" }}>
+        style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: "#1e3a5f" }}>
-            <Telescope className="h-5 w-5" style={{ color: "#93c5fd" }} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: "#fee2e2" }}>
+            <ShieldAlert className="h-5 w-5" style={{ color: "#dc2626" }} />
           </div>
           <div className="text-right">
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Profitis Ilias — ספירת כוכבים</p>
-            <p style={{ fontSize: 12, color: "#64748b" }}>מדריך אסטרונומיה לנועם · יום 3 · 21:45–23:15</p>
+            <p style={{ fontSize: 15, fontWeight: 800, color: "#171717" }}>בטיחות — מה שמצאנו, נכון לתחילת אוגוסט 2026</p>
+            <p style={{ fontSize: 12, color: "#991b1b" }}>לא "בטוח לחלוטין" — יש להיות מודעים ולבדוק שוב לפני הטיסה</p>
           </div>
         </div>
-        {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#64748b" }} />
-               : <ChevronDown className="h-5 w-5 flex-shrink-0" style={{ color: "#64748b" }} />}
+        {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#991b1b" }} />
+               : <ChevronDown className="h-5 w-5 flex-shrink-0" style={{ color: "#991b1b" }} />}
       </button>
-
       {open && (
-        <div className="mt-2 space-y-4 rounded-2xl p-5" style={{ background: "#0f172a", border: "1px solid #1e293b" }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>למה Profitis Ilias?</p>
-          {[
-            { t: "798 מ' גובה", d: "מעל האוויר העכור — שמיים צלולים. Milky Way בעין רגילה." },
-            { t: "אפלה מוחלטת", d: "אין אורות עיר בפסגה. זיהום אור = אפס." },
-            { t: "אוויר ים נקי", d: "רוחות ים מנקות האווירה — שקיפות אסטרונומית מעולה בספטמבר." },
-            { t: "קל להגיע", d: "מונית מרודוס — 45 דקות. ללא ציוד מיוחד." },
-          ].map(item => (
-            <div key={item.t} className="rounded-xl p-3" style={{ background: "#1e293b" }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>{item.t}</p>
-              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{item.d}</p>
-            </div>
-          ))}
-          <div style={{ height: 1, background: "#1e293b" }} />
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>אפליקציות לנועם</p>
-          {[
-            { name: "Stellarium", note: "חינם · AR מצלמה · מזהה כל כוכב", badge: "חינם" },
-            { name: "SkySafari",  note: "מפות שמיים · עקיבת כוכבי לכת",  badge: "₪" },
-            { name: "Sky Guide",  note: "הכי יפה · Apple only",            badge: "₪" },
-          ].map(app => (
-            <div key={app.name} className="flex items-center gap-3 rounded-xl p-3" style={{ background: "#1e293b" }}>
-              <Telescope className="h-5 w-5 flex-shrink-0" style={{ color: "#93c5fd" }} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{app.name}</p>
-                  <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#0f172a", color: "#93c5fd" }}>{app.badge}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{app.note}</p>
-              </div>
-            </div>
-          ))}
-          <div className="rounded-xl p-3" style={{ background: "#1e3a5f" }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>זמן מומלץ: 21:30–22:30</p>
-            <p style={{ fontSize: 12, color: "#bfdbfe", marginTop: 3 }}>ספטמבר = Milky Way בשיא. תנו לעיניים 20 דקות להתרגל לחושך. קחו סוודר!</p>
+        <div className="mt-2 space-y-2 rounded-2xl p-4" style={{ background: "#fff", border: "1px solid #fecaca" }}>
+          <p style={{ fontSize: 13, color: "#171717", lineHeight: 1.6 }}>
+            במהלך אוגוסט 2026 פרסם משרד החוץ הישראלי התרעה לישראלים ביוון לקראת הפגנות אנטי-ישראליות ברחבי המדינה, כולל המלצה לשמור על פרופיל נמוך, להימנע מסמלים ישראליים/יהודיים בולטים, ולהתרחק מהפגנות והתקהלויות. יוון מדורגת ברמת התראה 2 מתוך 4 (&quot;אמצעי זהירות מוגברים&quot;) עבור ישראלים.
+          </p>
+          <p style={{ fontSize: 13, color: "#171717", lineHeight: 1.6 }}>
+            ברודוס עצמה תועדו בעבר הפגנות אנטי-ישראליות (בעיקר בזיקה לעגינת ספינות שיוט ישראליות בנמל) וכן אירוע תקיפה חד-פעמי שדווח כנגד קבוצת בני נוער ישראלים ליד מועדון לילה בשעות הלילה המאוחרות.
+          </p>
+          <div className="rounded-xl p-3" style={{ background: "#f0fdf4" }}>
+            <p style={{ fontSize: 12, color: "#15803d", lineHeight: 1.6 }}>
+              <strong>למה זה פחות רלוונטי למסלול הזה:</strong> המסלול שלנו הוא משפחתי, יומי, בלי חיי לילה ובלי אזור הנמל בשעות עגינת ספינות. עדיין — מומלץ: לא לענוד תכשיטים/סמלים ישראליים בולטים בציבור, להימנע מכל הפגנה או התקהלות פוליטית גם מסקרנות, ולעקוב אחר עדכוני משרד החוץ סמוך ליציאה.
+            </p>
           </div>
+          <p style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.5 }}>
+            מקור: התרעות והכתבות פורסמו סביב 9–10 באוגוסט 2026. המידע עלול להשתנות — יש לבדוק שוב קרוב לתאריך הטיסה (7 בספטמבר 2026).
+          </p>
         </div>
       )}
     </div>
@@ -942,7 +1133,7 @@ function MusicDiscovery() {
           </div>
           <div className="text-right">
             <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>מוזיקה ברודוס — לנועם</p>
-            <p style={{ fontSize: 12, color: "#78716c" }}>גיטרות · ויניל · Rock · מוזיקה חיה</p>
+            <p style={{ fontSize: 12, color: "#78716c" }}>גיטרות · כלי נגינה · מאומת בחיפוש עדכני</p>
           </div>
         </div>
         {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#78716c" }} />
@@ -953,9 +1144,7 @@ function MusicDiscovery() {
         <div className="mt-2 space-y-2 rounded-2xl p-4" style={{ background: "#1c1917", border: "1px solid #292524" }}>
           <div className="rounded-xl p-3 mb-3" style={{ background: "#7c3aed22", border: "1px solid #7c3aed44" }}>
             <p style={{ fontSize: 12, color: "#c4b5fd" }}>
-              <strong style={{ color: "#a78bfa" }}>נועם:</strong> חפש חנויות מוזיקה בשוטטות בעיר העתיקה ובניו טאון.
-              Rhodes Old Town נפלא לחנויות ויניל ואלטרנטיבי.
-              Google Maps עשוי לחשוף חנויות שלא מפורסמות.
+              <strong style={{ color: "#a78bfa" }}>לנועם:</strong> לא אותרה חנות תקליטים (Vinyl) מאומתת ברודוס בחיפוש שביצענו — יש דיווח לא-מאומת ברשתות חברתיות על חנות בשם &quot;Rhodes Vinyl&quot;, אך לא הצלחנו לאשר מיקום או שעות פעילות. כדאי לשאול בקבלת המלון או לחפש בזמן הטיול עצמו.
             </p>
           </div>
           {MUSIC_DISCOVERY.map(item => {
@@ -1001,8 +1190,8 @@ function AnimalDiscovery() {
             <PawPrint className="h-5 w-5" style={{ color: "#4ade80" }} />
           </div>
           <div className="text-right">
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>בעלי חיים ברודוס — למעיין</p>
-            <p style={{ fontSize: 12, color: "#166534" }}>טווסים · פרפרים · דגים · חוויות טבע</p>
+            <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>בעלי חיים וטבע ברודוס — למעיין</p>
+            <p style={{ fontSize: 12, color: "#166534" }}>טווסים · פרפרים · חוויות טבע נגישות</p>
           </div>
         </div>
         {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#166534" }} />
@@ -1011,6 +1200,11 @@ function AnimalDiscovery() {
 
       {open && (
         <div className="mt-2 space-y-2 rounded-2xl p-4" style={{ background: "#052e16", border: "1px solid #14532d" }}>
+          <div className="rounded-xl p-3 mb-1" style={{ background: "#166534" }}>
+            <p style={{ fontSize: 12, color: "#bbf7d0", lineHeight: 1.6 }}>
+              🦕 <strong style={{ color: "#dcfce7" }}>דינוזאורים:</strong> בדקנו במיוחד — לא אותרה תערוכה, מוזיאון או פארק דינוזאורים איכותי ומאומת ברודוס לקיץ 2026. במקום להוסיף אטרקציה חלשה רק כדי &quot;לסמן V&quot;, בחרנו שלא לשלב את הנושא הזה במסלול. אם יתגלה מידע עדכני יותר לפני הטיול, אפשר להוסיף.
+            </p>
+          </div>
           {ANIMAL_DISCOVERY.map(item => (
             <div key={item.name} className="flex items-center gap-3 rounded-xl p-3" style={{ background: "#14532d" }}>
               <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: "#052e16" }}>
@@ -1048,7 +1242,7 @@ function ShoppingDiscovery() {
         style={{ border: "1px solid #f0f0f0", background: "#fff" }}>
         <div className="flex items-center gap-2">
           <ShoppingBag className="h-5 w-5" style={{ color: "#ec4899" }} />
-          <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>קניות — Y2K, Grunge, K-Pop, Rock</span>
+          <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>קניות — Y2K, Grunge, K-Pop, Vintage</span>
         </div>
         {open ? <ChevronUp className="h-5 w-5 text-neutral-400" /> : <ChevronDown className="h-5 w-5 text-neutral-400" />}
       </button>
@@ -1096,6 +1290,69 @@ function ShoppingDiscovery() {
   );
 }
 
+// ─── Astronomy section ─────────────────────────────────────────────────────────
+function AstronomySection() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button onClick={() => setOpen(v => !v)}
+        className="flex w-full cursor-pointer items-center justify-between rounded-2xl p-4"
+        style={{ background: "#0f172a", border: "none" }}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: "#1e3a5f" }}>
+            <Telescope className="h-5 w-5" style={{ color: "#93c5fd" }} />
+          </div>
+          <div className="text-right">
+            <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Profitis Ilias — ספירת כוכבים</p>
+            <p style={{ fontSize: 12, color: "#64748b" }}>מדריך אסטרונומיה לנועם · יום 3 · 21:45–23:15</p>
+          </div>
+        </div>
+        {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#64748b" }} />
+               : <ChevronDown className="h-5 w-5 flex-shrink-0" style={{ color: "#64748b" }} />}
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-4 rounded-2xl p-5" style={{ background: "#0f172a", border: "1px solid #1e293b" }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>למה Profitis Ilias?</p>
+          {[
+            { t: "798 מ' גובה", d: "מעל האוויר העכור — שמיים צלולים יחסית. Milky Way נראה בעין רגילה." },
+            { t: "מעט אורות סביב", d: "אין ריכוז עירוני גדול בפסגה עצמה." },
+            { t: "אוויר ים נקי", d: "רוחות ים מנקות האווירה — שקיפות אסטרונומית טובה בספטמבר." },
+            { t: "קל להגיע", d: "מונית מרודוס — 45 דקות. ללא ציוד מיוחד, אך מומלץ להזמין מונית הלוך-חזור מראש." },
+          ].map(item => (
+            <div key={item.t} className="rounded-xl p-3" style={{ background: "#1e293b" }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>{item.t}</p>
+              <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>{item.d}</p>
+            </div>
+          ))}
+          <div style={{ height: 1, background: "#1e293b" }} />
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>אפליקציות לנועם</p>
+          {[
+            { name: "Stellarium", note: "חינם · AR מצלמה · מזהה כל כוכב", badge: "חינם" },
+            { name: "SkySafari",  note: "מפות שמיים · עקיבת כוכבי לכת",  badge: "₪" },
+            { name: "Sky Guide",  note: "הכי יפה · Apple only",            badge: "₪" },
+          ].map(app => (
+            <div key={app.name} className="flex items-center gap-3 rounded-xl p-3" style={{ background: "#1e293b" }}>
+              <Telescope className="h-5 w-5 flex-shrink-0" style={{ color: "#93c5fd" }} />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{app.name}</p>
+                  <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#0f172a", color: "#93c5fd" }}>{app.badge}</span>
+                </div>
+                <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{app.note}</p>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-xl p-3" style={{ background: "#1e3a5f" }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>זמן מומלץ: 21:30–22:30</p>
+            <p style={{ fontSize: 12, color: "#bfdbfe", marginTop: 3 }}>ספטמבר = Milky Way בשיא. תנו לעיניים 20 דקות להתרגל לחושך. קחו סוודר!</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function PlannerPage() {
   const [activeDay, setActiveDay] = useState(0);
@@ -1107,7 +1364,7 @@ export default function PlannerPage() {
 
         {/* Header */}
         <div>
-          <p style={{ fontSize: 15, color: "#a3a3a3", marginBottom: 4 }}>Avalon Boutique Hotel · ספטמבר 2026</p>
+          <p style={{ fontSize: 15, color: "#a3a3a3", marginBottom: 4 }}>Avalon Boutique Hotel · עיר עתיקה, רודוס · ספטמבר 2026</p>
           <h1 style={{ fontSize: 34, fontWeight: 900, lineHeight: 1.1, color: "#171717", letterSpacing: "-0.02em" }}>
             מסלול הטיול
           </h1>
@@ -1130,7 +1387,7 @@ export default function PlannerPage() {
               </div>
               <div className="flex items-center gap-1.5 rounded-lg p-2" style={{ background: "#fef2f2" }}>
                 <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#dc2626" }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#991b1b" }}>אלרגיה חמורה לחלב — עדיפות עליונה</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#991b1b" }}>אלרגיה חמורה לחלב — עדיפות עליונה, הימנעות מזיהום צולב</span>
               </div>
             </div>
             {/* Maayan */}
@@ -1146,11 +1403,14 @@ export default function PlannerPage() {
               </div>
               <div className="flex items-center gap-1.5 rounded-lg p-2" style={{ background: "#fef9ec" }}>
                 <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#ca8a04" }} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e" }}>אלרגיה קלה לאבק · לא מסכנת חיים</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e" }}>רגישות קלה לאבק · לא מסכנת חיים</span>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Trip-wide safety banner */}
+        <TripSafetyBanner />
 
         {/* Day selector */}
         <div className="grid grid-cols-4 gap-2">
@@ -1205,6 +1465,9 @@ export default function PlannerPage() {
         <div className="space-y-0.5">
           {day.events.map((e, i) => <EventRow key={i} e={e} />)}
         </div>
+
+        {/* Day summary */}
+        <DaySummaryCard summary={day.summary} />
 
         {/* Discovery sections */}
         <AstronomySection />
