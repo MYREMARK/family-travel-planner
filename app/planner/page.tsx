@@ -29,9 +29,14 @@ interface Event {
   distancePrev?: string;    // מרחק מהפעילות הקודמת
   duration?: string;        // משך הפעילות המשוער
   transportOption?: string; // אפשרות תחבורה
-  altOption?: string;       // אפשרות חלופית (מסעדה סגורה / דרך חלופית)
+  altOption?: string;       // אפשרות חלופית / מסעדת גיבוי
   safetyNote?: string;      // הערת בטיחות ספציפית לאירוע
   wowLevel?: number;        // רמת WOW 1–10
+  cuisine?: string;         // סוג מטבח/אווירה (למסעדות)
+  veganStatus?: string;     // מעמד טבעוני מדויק
+  allergyConfidence?: string; // רמת ביטחון לגבי אלרגיית החלב, בלשון כנה
+  whySelected?: string;     // למה נבחרה המסעדה הזו דווקא כאן
+  priceLevel?: "€" | "€€" | "€€€"; // רמת מחיר יחסית
   noamScore?: number;       // 1-10 — Astronomy, HP, Rock, Grunge
   maayanScore?: number;     // 1-10 — K-Pop, Animals, Shopping, Dance
   familyScore?: number;     // 1-10 — shared experience quality
@@ -62,6 +67,10 @@ interface DaySummary {
 
 const SAFETY_BOILERPLATE =
   "לא נמצאו כרגע דיווחים על אירוע פוליטי, הפגנה או אירוע חריג באזור ובשעות המתוכננות. מומלץ לבצע בדיקה חוזרת סמוך ליציאה.";
+
+// Required exact-meaning disclaimer for every restaurant that is NOT fully vegan.
+const NOT_FULLY_VEGAN =
+  "לא מסעדה טבעונית לחלוטין. יש לוודא את נושא אלרגיית החלב והימנעות מזיהום צולב ישירות מול הצוות לפני ההזמנה.";
 
 // ─── Itinerary ────────────────────────────────────────────────────────────────
 const DAYS: {
@@ -138,6 +147,10 @@ const DAYS: {
         icon: Coffee, type: "food",
         tags: ["טבעוני מסומן", "קרוב למלון", "מטבח לא טבעוני בלעדי"],
         cost: "€8–12 לאדם (משוער)",
+        cuisine: "צמחוני/טבעוני, ים-תיכוני", priceLevel: "€€",
+        veganStatus: "מסעדה צמחונית (לא טבעונית בלעדית) — כל מנה מסומנת בבירור Vegan/Vegetarian בתפריט",
+        allergyConfidence: "בינונית-גבוהה: תפריט מסומן ברור, אך לא אותר פרוטוקול רשמי למניעת זיהום צולב. יש לבקש מהצוות במפורש.",
+        whySelected: "פתוחה בדיוק בשעה שצריך (9:00), הכי קרובה למלון, האפשרות המהימנה ביותר לבוקר הראשון אחרי טיסת לילה — משמשת כ'עוגן הבטיחות' של הטיול.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
@@ -145,8 +158,8 @@ const DAYS: {
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
         noamNote: "המטבח אינו טבעוני בלעדי — הזמינו רק מנות המסומנות Vegan בתפריט, וציינו לצוות במפורש 'severe dairy allergy, please avoid cross-contamination'",
         maayanNote: "שקשוקה טבעונית / פנקייק נוטלה טבעוני — אופציה טעימה לבוקר ראשון",
-        tip: "לא מצאנו פרוטוקול רשמי ומאומת למניעת זיהום צולב — לכן זו לא 'אפשרות בטוחה' באופן מוחלט, אלא אפשרות טובה בתנאי שמבקשים במפורש זהירות.",
-        altOption: "Annie's Vegan Food & Bar — 100% טבעוני, אך זה Pop-up שדורש הזמנה מראש בוואטסאפ, פתוח רק 11:00–15:00 בימי ג'-ו' — לא רלוונטי לארוחת בוקר, ולא מאומת שעדיין פעיל בקיץ 2026.",
+        tip: "לא מצאנו פרוטוקול רשמי ומאומת למניעת זיהום צולב — לכן זו לא 'אפשרות בטוחה' באופן מוחלט, אלא אפשרות טובה בתנאי שמבקשים במפורש זהירות. לא מסעדה טבעונית לחלוטין — יש לוודא את נושא האלרגיה לחלב וזיהום צולב ישירות מול הצוות לפני ההזמנה.",
+        altOption: "Bon Bonheur (מאפייה, עיר עתיקה) — בייגל אבוקדו טבעוני, וופלים, דונאטס. לא מאפייה טבעונית ייעודית — יש לוודא היעדר חלב בכל פריט ספציפי מול הצוות לפני הזמנה.",
       },
       {
         time: "10:15",
@@ -166,19 +179,23 @@ const DAYS: {
       },
       {
         time: "12:00",
-        label: "ארוחת צהריים קלה — RuBisCo",
-        detail: "על הרחוב הראשי של העיר העתיקה · מיצים סחוטים קר, קערות אסאי, חלב שקדים ביתי · לא מסעדה טבעונית מלאה — יש אפשרויות עם דבש/אבקת חלבון מי גבינה",
+        label: "ארוחת צהריים — Zaytouna (מטבח לבנוני)",
+        detail: "רחוב סוקרטוס 42, על הרחוב הראשי של העיר העתיקה · מטבח לבנוני — פלאפל, חומוס, פיתות · חוויה שונה לגמרי מהבוקר",
         icon: Utensils, type: "food",
-        tags: ["קליל", "רחוב ראשי", "ציינו אלרגיה"],
-        cost: "€6–9 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=RuBisCo+Cold+Pressed+Juices+Rhodes",
+        tags: ["מטבח שונה", "רחוב ראשי", "ציינו אלרגיה"],
+        cost: "€5–10 לאדם (משוער)",
+        cuisine: "לבנוני", priceLevel: "€",
+        veganStatus: "לא מסעדה טבעונית ייעודית — אך רוב המנות העיקריות (פלאפל, חומוס, פיתה) טבעוניות מטבען. לא אותר תיעוד רשמי לגבי אלרגיה לחלב.",
+        allergyConfidence: "בינונית: המנות עצמן נטולות חלב באופן טבעי, אך אין מידע מאומת על זיהום צולב במטבח. יש לציין אלרגיה חמורה במפורש ולבקש הכנה נפרדת.",
+        whySelected: "ממש על הרחוב שכבר משוטטים בו (סוקרטוס), מטבח שונה לגמרי מהבוקר הטבעוני-ים-תיכוני — הזדמנות לגיוון אמיתי בלי לסטות מהמסלול.",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Zaytouna+Rhodes+Sokratous",
         travelTime: "8 דקות הליכה",
         distancePrev: "כ-500 מ'", duration: "כ-30 דקות",
         noamScore: 6, maayanScore: 7, familyScore: 7,
         allergyRating: "ok", veganAvailable: true,
-        noamNote: "בקשו קערת אסאי/סמוזי עם חלב שקדים בלבד — ללא דבש וללא אבקת חלבון מי גבינה",
-        tip: "ארוחה קלה בכוונה — לא ארוחה מלאה, כי הבוקר כבר היה מלא. שומרים כוחות למחר.",
-        altOption: "אם סגור: ONO (8 דקות הליכה חזרה)",
+        noamNote: "פלאפל וחומוס נטולי חלב מטבעם — אבל בקשו לוודא הכנה נפרדת בשל האלרגיה החמורה",
+        tip: "ארוחה קלה-בינונית בכוונה — לא ארוחה מלאה מדי, כי הבוקר כבר היה מלא. שומרים כוחות למחר. לא מסעדה טבעונית — ודאו את נושא האלרגיה לחלב וזיהום צולב ישירות מול הצוות.",
+        altOption: "RuBisCo (מיצים/סמוזי, אותו רחוב) — בקשו קערת אסאי/סמוזי עם חלב שקדים בלבד, ללא דבש וללא אבקת חלבון מי גבינה. גם כאן לא מסעדה טבעונית מלאה.",
       },
       {
         time: "14:00",
@@ -225,17 +242,22 @@ const DAYS: {
       },
       {
         time: "19:30",
-        label: "ארוחת ערב — ONO (שוב, בכוונה)",
-        detail: "יום ראשון עייף — חוזרים למקום מוכר ובטוח שכבר ביקרתם בו הבוקר, במקום להתנסות במסעדה חדשה בלילה הראשון",
+        label: "ארוחת ערב — ONO (שוב, בכוונה מפורשת)",
+        detail: "יום ראשון עייף — חוזרים למקום מוכר ובטוח שכבר ביקרתם בו הבוקר, במקום להתנסות במסעדה חדשה ובלתי מוכרת בלילה הראשון",
         icon: Utensils, type: "food",
-        tags: ["בטוח ומוכר", "5 דק' מהמלון"],
+        tags: ["חזרה מוצדקת", "5 דק' מהמלון"],
         cost: "€10–15 לאדם (משוער)",
+        cuisine: "צמחוני/טבעוני, ים-תיכוני", priceLevel: "€€",
+        veganStatus: "מסעדה צמחונית עם מנות טבעוניות מסומנות בבירור (לא טבעונית בלעדית)",
+        allergyConfidence: "בינונית-גבוהה — כבר ביקרתם שם הבוקר, הצוות מכיר את הבקשה, פחות אי-ודאות מניסיון במקום חדש",
+        whySelected: "חזרה מכוונת, לא חוסר יצירתיות: יום ראשון עם לילה כמעט ללא שינה הוא לא הזמן לנסות מקום לא מוכר. עדיפות מוצהרת לוודאות על פני גיוון בלילה הזה בלבד.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-1 שעה",
         noamScore: 7, maayanScore: 6, familyScore: 8,
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        tip: "הזמינו שוב רק מנות מסומנות Vegan וציינו את האלרגיה. עדיפות לפשטות ולוודאות ביום הכי עייף של הטיול.",
+        tip: "הזמינו שוב רק מנות מסומנות Vegan וציינו את האלרגיה. לא מסעדה טבעונית לחלוטין — ודאו זיהום צולב מול הצוות. עדיפות לפשטות ולוודאות ביום הכי עייף של הטיול.",
+        altOption: "Archipelagos (כיכר היפוקרטס, כ-6 דק') — תפריט עם מנות טבעוניות/צמחוניות/ללא גלוטן מסומנות, נוף לחומות ולכיכר. גם כאן לא מסעדה טבעונית — ודאו אלרגיה מול הצוות.",
       },
     ],
     summary: {
@@ -263,6 +285,26 @@ const DAYS: {
     maayanHighlight: "St Paul's Bay + סמטאות Lindos — צילום, מים טורקיז",
     familyHighlight: "אפשר לדלג על הטיפוס באקרופוליס עם רכיבת חמור מסורתית",
     events: [
+      {
+        time: "07:45",
+        label: "ארוחת בוקר — במלון (Avalon)",
+        detail: "ארוחת בוקר כלולה במלון עצמו · אפשרויות צמחוניות/טבעוניות לפי המלון · הכי הגיוני לפני יציאה מוקדמת ל-Lindos — אין צורך לצאת ולחזור",
+        icon: Coffee, type: "food",
+        tags: ["כלול במלון", "לא יוצאים", "ציינו אלרגיה"],
+        cost: "כלול בהזמנה",
+        cuisine: "ארוחת בוקר יוונית/בופה", priceLevel: "€",
+        veganStatus: "לא מסעדה טבעונית — לפי מידע כללי על המלון יש אפשרויות צמחוניות/טבעוניות/מקומיות בארוחת הבוקר, אך לא אותר תיעוד ספציפי לגבי אלרגיית חלב.",
+        allergyConfidence: "לא ידועה במדויק — יש לדבר עם צוות המלון מראש (אפילו בערב הקודם) ולבקש לוודא אפשרויות נטולות חלב וזיהום צולב לפני הבוקר.",
+        whySelected: "יום עם יציאה מוקדמת (08:30) ל-Lindos — אכילה במלון עצמו חוסכת זמן וגם מוסיפה גיוון אמיתי: חוויה שונה מכל הארוחות האחרות בטיול.",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
+        travelTime: "המלון עצמו",
+        distancePrev: "—", duration: "כ-30 דקות",
+        noamScore: 5, maayanScore: 5, familyScore: 6,
+        allergyRating: "ask", veganAvailable: true,
+        noamNote: "דברו עם צוות המלון על האלרגיה מראש — רצוי כבר בערב הקודם, לא רק בבוקר",
+        tip: "לא בדקנו פרוטוקול אלרגיה ספציפי מול המלון — זו הזדמנות טובה לשאול בקבלה כבר ביום ההגעה, כדי לדעת מה אפשרי לפני הבוקר הזה.",
+        altOption: "אם מעדיפים לצאת: ONO (5 דק' מהמלון, פותח 9:00 — אך זה יאחר את האוטובוס של 08:30, אז זה בעיקר גיבוי אם משנים שעת יציאה).",
+      },
       {
         time: "08:30",
         label: "נסיעה ל-Lindos",
@@ -336,6 +378,10 @@ const DAYS: {
         icon: Utensils, type: "food",
         tags: ["טבעוני 100%", "Rooftop", "נוף WOW"],
         cost: "€10–15 לאדם (משוער)",
+        cuisine: "טבעוני, גריל/בורגרים/סלטים", priceLevel: "€€",
+        veganStatus: "100% טבעוני — כל המטבח, לא רק חלק מהתפריט",
+        allergyConfidence: "גבוהה: מטבח טבעוני מלא — אין מוצרי חלב בבניין כלל. עדיין מומלץ לציין אלרגיה חמורה במפורש (יתכן שימוש בחמאה טבעונית/אגוזים שדורש תשומת לב לרגישויות אחרות).",
+        whySelected: "אנחנו פיזית ב-Lindos באותו רגע, המסעדה בתוך הכפר עצמו (לא דורשת נסיעה נוספת), ו-100% טבעונית — השילוב הכי בטוח וגיאוגרפית הגיוני בכל הטיול.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=T-Veg+Lindos+Rhodes",
         travelTime: "בתוך כפר לינדוס",
         distancePrev: "כ-200 מ'", duration: "כ-1 שעה",
@@ -378,25 +424,31 @@ const DAYS: {
       },
       {
         time: "20:30",
-        label: "ארוחת ערב — ONO",
-        detail: "בעיר העתיקה, כמה דקות מ-Avalon · פתוח עד 22:30 · תפריט טבעוני/צמחוני מסומן, ידידותי לכשרות",
+        label: "ארוחת ערב — Marco Polo Mansion",
+        detail: "מתחם ארמון עות'מאני מהמאה ה-15, חצר פנימית שקטה בעיר העתיקה · מסעדה מיוחדת ורומנטית, מטבח ים-תיכוני-פיוז'ן · חובה הזמנה מראש",
         icon: Utensils, type: "food",
-        tags: ["ציינו אלרגיה", "5 דק' מהמלון"],
-        cost: "€12–18 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
-        travelTime: "5 דקות מ-Avalon",
-        distancePrev: "כ-300 מ'", duration: "כ-1 שעה",
-        noamScore: 8, maayanScore: 7, familyScore: 8,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "הזמינו רק מנות מסומנות Vegan וציינו אלרגיה חמורה במפורש",
-        maayanNote: "סיום נעים ליום ה-WOW הגדול",
-        tip: "לא מצאנו מסעדת Fine Dining ברודוס שיכולה להבטיח בבירור העדר זיהום צולב לחלב — אם רוצים לנסות משהו מיוחד יותר, מומלץ להתקשר מראש ולשאול על כך במפורש לפני ההזמנה.",
+        tags: ["מיוחד", "הזמינו מראש בהחלט", "ציינו אלרגיה"],
+        cost: "€25–40 לאדם (משוער — מסעדת יוקרה)",
+        cuisine: "ים-תיכוני / פיוז'ן, Fine Dining", priceLevel: "€€€",
+        veganStatus: "לא מסעדה טבעונית — לפי מידע כללי 'יכולה להתאים' לטבעונים/צמחונים/ללא גלוטן, אך לא אותר תיעוד ספציפי על אופן הטיפול באלרגיית חלב.",
+        allergyConfidence: "נמוכה-בינונית: הצהרה כללית על גמישות בתפריט, לא פרוטוקול אלרגיה מפורט. " + NOT_FULLY_VEGAN,
+        whySelected: "יום ה-WOW של הטיול — זו ההזדמנות המתבקשת לארוחת הערב ה'מיוחדת' שביקשתם: חצר היסטורית, אווירה שונה לגמרי מכל ארוחה אחרת. חובה להזמין מראש (המקום ידוע כמלא כמעט תמיד).",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Marco+Polo+Mansion+Restaurant+Rhodes",
+        travelTime: "8 דקות מ-Avalon",
+        distancePrev: "כ-500 מ'", duration: "כ-1.5 שעות",
+        noamScore: 7, maayanScore: 7, familyScore: 8,
+        allergyRating: "ask", veganAvailable: true,
+        noamNote: "אווירה של ארמון עתיק — מתאים לתחושת הפנטזיה, אך לא מותאם ספציפית לאלרגיה כמו T-Veg",
+        maayanNote: "חצר קסומה, תאורה יפה — מקום שווה לתמונות ולזיכרון",
+        wow: true, wowLevel: 9,
+        tip: "הזמינו מראש (טלפונית) לפחות יום-יומיים מראש — המקום מתמלא. בעת ההזמנה ציינו במפורש 'severe dairy allergy' ובקשו לוודא עם השף לפני ההגעה, לא רק בשולחן.",
+        altOption: "Archipelagos (כיכר היפוקרטס, כ-6 דק' מהמלון) — לא דורש הזמנה קפדנית כמו Marco Polo, תפריט עם מנות טבעוניות/צמחוניות/ללא גלוטן מסומנות, נוף לחומות העיר העתיקה. גם כאן — " + NOT_FULLY_VEGAN,
       },
     ],
     summary: {
       safety: "🟢",
       safetyNote: SAFETY_BOILERPLATE,
-      foodSafety: "🟢",
+      foodSafety: "🟡",
       walkingComfort: "🟡",
       wow: 9,
       value: 8,
@@ -420,18 +472,23 @@ const DAYS: {
     events: [
       {
         time: "08:30",
-        label: "ארוחת בוקר — ONO",
-        detail: "כמה דקות הליכה מ-Avalon · ארוחת בוקר מלאה לפני היום העמוס יותר",
+        label: "ארוחת בוקר — Old Town Corner Bakery",
+        detail: "מאפייה בעיר העתיקה, כמה דקות מ-Avalon · קולוֹרי (בייגל שומשום), חומוס, טוסט גבינה טבעונית · בוקר קליל ושונה לפני יום עמוס",
         icon: Coffee, type: "food",
-        tags: ["טבעוני מסומן", "קרוב למלון", "ציינו אלרגיה"],
-        cost: "€8–12 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        tags: ["מאפייה", "מטבח שונה", "ציינו אלרגיה"],
+        cost: "€4–8 לאדם (משוער)",
+        cuisine: "מאפייה יוונית + פריטים טבעוניים", priceLevel: "€",
+        veganStatus: "לא מאפייה טבעונית ייעודית — יש כמה פריטים טבעוניים מזוהים (קולוֹרי, חומוס, טוסט 'גבינה' טבעונית), לא כל התפריט.",
+        allergyConfidence: "בינונית: הפריטים הטבעוניים ידועים, אך אין מידע מאומת על זיהום צולב במאפייה. " + NOT_FULLY_VEGAN,
+        whySelected: "בוקר קליל ושונה מהותית מהבוקר הכבד יותר של יום 1 — מאפייה במקום מסעדה, קרוב לחלוטין למלון, ומכין לפני יום ארוך (Filerimos + ארמון + פרופיטיס אליאס בלילה).",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Old+Town+Corner+Bakery+Rhodes",
         travelTime: "5 דקות הליכה",
-        distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
-        noamScore: 8, maayanScore: 7, familyScore: 8,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "מקום מוכר וכבר בטוח מיום 1 — לא מתנסים בחדש לפני יום עמוס",
-        maayanNote: "פנקייק נוטלה טבעוני שוב? למה לא",
+        distancePrev: "כ-300 מ'", duration: "כ-30 דקות",
+        noamScore: 6, maayanScore: 6, familyScore: 7,
+        allergyRating: "ok", veganAvailable: true,
+        noamNote: "בקשו לוודא איזה פריטים באמת נטולי חלב — לא כל המאפייה טבעונית",
+        maayanNote: "וופל/גלידת סורבה טבעונית אפשרית בהמשך הרחוב ב-Waffle Art אם בא כוח למתוק",
+        altOption: "ONO (5 דק' מהמלון) — מוכר ובטוח מיום 1, גיבוי אמין אם המאפייה לא מתאימה או סגורה.",
       },
       {
         time: "09:30",
@@ -452,19 +509,23 @@ const DAYS: {
       },
       {
         time: "13:00",
-        label: "ארוחת צהריים — ONO",
-        detail: "חזרה לעיר העתיקה · כמה דקות מ-Avalon",
+        label: "ארוחת צהריים — PITAFAN (גיירוס טבעוני)",
+        detail: "חזרה לעיר העתיקה, לכיוון הנמל · גיירוס/פיתה טבעונית אמיתית בתפריט · פתוח ג'-א' 11:30–24:00 (סגור בימי ב')",
         icon: Utensils, type: "food",
-        tags: ["טבעוני מסומן", "קרוב", "ציינו אלרגיה"],
-        cost: "€8–12 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        tags: ["מטבח שונה", "סטריט פוד", "ציינו אלרגיה"],
+        cost: "€6–10 לאדם (משוער)",
+        cuisine: "יווני — גיירוס/פיתה, סטריט פוד", priceLevel: "€",
+        veganStatus: "לא מסעדה טבעונית — אך יש אפשרות גיירוס טבעוני מפורשת בתפריט (לא רק סלט בלי בשר)",
+        allergyConfidence: "בינונית: יש אפשרות טבעונית מוגדרת, אך לא אותר מידע על זיהום צולב במטבח משותף לבשר/חלב. " + NOT_FULLY_VEGAN,
+        whySelected: "חוזרים לעיר העתיקה מפילרימוס בכל מקרה — זו הזדמנות לחוויה שלישית שונה (סטריט פוד יווני) אחרי צמחוני-ים-תיכוני (יום 1) ולבנוני (יום 1). קרוב למלון, בדרך הטבעית בחזרה.",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Pitafan+Yeeros+Rhodes+Old+Town",
         travelTime: "5 דקות מ-Avalon",
-        distancePrev: "מפילרימוס — 20 דק' מונית", duration: "כ-45 דקות",
-        noamScore: 8, maayanScore: 8, familyScore: 9,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "עקביות = פחות סיכון עם אלרגיה חמורה",
-        maayanNote: "מגוון טבעוני צבעוני",
-        altOption: "אם רוצים חוויה מיוחדת: Annie's Vegan Food & Bar (Pop-up, 100% טבעוני) — פתוחה בדרך כלל בימי ד' 11:00–15:00 לפי המידע שמצאנו, אך זה Pop-up שדורש הזמנה מראש בוואטסאפ ולא מאומת שעדיין פעיל בקיץ 2026. יש לוודא לפני שסומכים על זה.",
+        distancePrev: "מפילרימוס — 20 דק' מונית", duration: "כ-30 דקות",
+        noamScore: 7, maayanScore: 7, familyScore: 7,
+        allergyRating: "ok", veganAvailable: true,
+        noamNote: "בקשו לוודא שהגריל של הגיירוס הטבעוני נפרד מהבשר/הרטבים עם חלב",
+        maayanNote: "חוויית 'סטריט פוד' יווני אמיתי — שונה מכל ארוחה קודמת בטיול",
+        altOption: "ONO (5 דק' מהמלון) — מוכר ובטוח, גיבוי קבוע. אפשרות נוספת לחוויה מיוחדת: Annie's Vegan Food & Bar (Pop-up, 100% טבעוני), פתוחה בדרך כלל בימי ד' 11:00–15:00 לפי המידע שמצאנו — אך זה Pop-up שדורש הזמנה מראש בוואטסאפ ולא מאומת שעדיין פעיל בקיץ 2026.",
       },
       {
         time: "14:30",
@@ -516,17 +577,22 @@ const DAYS: {
       },
       {
         time: "19:30",
-        label: "ארוחת ערב — ONO",
-        detail: "ארוחה קלה וממוקדת לפני נסיעת הלילה ל-Profitis Ilias",
+        label: "ארוחת ערב — ONO (חזרה מוצדקת שלישית)",
+        detail: "ארוחה קלה וממוקדת לפני נסיעת הלילה ל-Profitis Ilias — לא זמן לנסות מקום לא מוכר",
         icon: Utensils, type: "food",
-        tags: ["מהיר", "5 דק' מהמלון"],
+        tags: ["מהיר ובטוח", "5 דק' מהמלון"],
         cost: "€8–12 לאדם (משוער)",
+        cuisine: "צמחוני/טבעוני, ים-תיכוני", priceLevel: "€€",
+        veganStatus: "מסעדה צמחונית עם מנות טבעוניות מסומנות (לא טבעונית בלעדית)",
+        allergyConfidence: "בינונית-גבוהה — מקום מוכר ובטוח מהביקורים הקודמים בטיול",
+        whySelected: "לפני נסיעת לילה של 45 דקות להר — הערב הזה דורש ודאות ומהירות, לא ניסוי. זו הפעם השלישית והאחרונה שחוזרים לכאן בכוונה, ומכאן ואילך אין עוד חזרות בטיול.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
         noamScore: 7, maayanScore: 7, familyScore: 8,
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "ארוחה קלה לפני הכוכבים — לא כבדה מדי",
+        noamNote: "ארוחה קלה לפני הכוכבים — לא כבדה מדי. " + NOT_FULLY_VEGAN,
+        altOption: "RuBisCo (מיצים/סמוזי, כ-8 דק') — אם רוצים משהו קליל וממש מהיר במקום ארוחה מלאה. גם כאן לא מטבח טבעוני בלעדי.",
       },
       {
         time: "21:00",
@@ -580,7 +646,7 @@ const DAYS: {
     summary: {
       safety: "🟢",
       safetyNote: SAFETY_BOILERPLATE + " נסיעת הלילה להר מחייבת מונית מוזמנת מראש הלוך וחזור.",
-      foodSafety: "🟢",
+      foodSafety: "🟡",
       walkingComfort: "🟢",
       wow: 9,
       value: 7,
@@ -600,21 +666,26 @@ const DAYS: {
     bg: "#fef9ec",
     noamHighlight: "ThriftIT (ליד המלון) + חנויות Grunge ב'עיר החדשה'",
     maayanHighlight: "Zara, Bershka, Stradivarius — K-Pop fashion haul",
-    familyHighlight: "ONO — ארוחת פרידה מוכרת ובטוחה",
+    familyHighlight: "בוקר אחרון במאפייה חדשה + ארוחת פרידה ב-Rustico — עוד שתי חוויות שלא היו בטיול",
     events: [
       {
         time: "08:30",
-        label: "ארוחת בוקר — ONO",
-        detail: "ארוחה אחרונה · 5 דקות מ-Avalon · כבר מוכר ובטוח",
+        label: "ארוחת בוקר — Bon Bonheur",
+        detail: "מאפייה בעיר העתיקה, כמה דקות מ-Avalon · בייגל אבוקדו טבעוני, וופלים, דונאטס · בוקר אחרון קליל ושונה",
         icon: Coffee, type: "food",
-        tags: ["טבעוני מסומן", "אחרון", "ציינו אלרגיה"],
-        cost: "€8–12 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        tags: ["מאפייה", "מטבח שונה", "ציינו אלרגיה"],
+        cost: "€5–9 לאדם (משוער)",
+        cuisine: "מאפייה/בראנץ' מודרני", priceLevel: "€",
+        veganStatus: "לא מאפייה טבעונית ייעודית — יש פריטים טבעוניים מזוהים (בייגל אבוקדו, ככל הנראה חלק מהוופלים/דונאטס), לא כל התפריט.",
+        allergyConfidence: "בינונית: לא אותר תיעוד רשמי על זיהום צולב. " + NOT_FULLY_VEGAN,
+        whySelected: "בוקר אחרון — הזדמנות לחוויה שונה מהמאפייה של יום 3 ומ-ONO, לפני יום קניות וטיסה. עדיין קרוב מאוד למלון.",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Bon+Bonheur+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
-        noamScore: 8, maayanScore: 7, familyScore: 8,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        maayanNote: "פנקייק נוטלה אחרון! לשמור זיכרון",
+        noamScore: 6, maayanScore: 7, familyScore: 7,
+        allergyRating: "ok", veganAvailable: true,
+        maayanNote: "וופל אחרון! לשמור זיכרון",
+        altOption: "ONO (5 דק' מהמלון) — האפשרות הכי מוכרת ובטוחה, אם מעדיפים ודאות ביום הטיסה.",
       },
       {
         time: "09:30",
@@ -636,17 +707,22 @@ const DAYS: {
       },
       {
         time: "11:30",
-        label: "ארוחת צהריים — ONO",
-        detail: "ארוחה אחרונה לפני החזרה למלון ולשדה · כמה דקות הליכה מ-Avalon",
+        label: "ארוחת צהריים — Rustico",
+        detail: "עיר עתיקה, פטיו חיצוני · תפריט צמחוני נפרד עם כמות הגונה של אפשרויות טבעוניות · ארוחה אחרונה לפני החזרה למלון ולשדה",
         icon: Utensils, type: "food",
-        tags: ["טבעוני מסומן", "אחרון"],
-        cost: "€8–12 לאדם (משוער)",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
+        tags: ["מטבח שונה", "פטיו", "ציינו אלרגיה"],
+        cost: "€10–16 לאדם (משוער)",
+        cuisine: "ים-תיכוני/איטלקי, פטיו חיצוני", priceLevel: "€€",
+        veganStatus: "לא מסעדה טבעונית — תפריט צמחוני נפרד עם 'כמות הגונה' של אפשרויות טבעוניות (לפי ביקורות), אין אימות פרטני מעבר לכך.",
+        allergyConfidence: "בינונית: אין מידע מאומת על פרוטוקול זיהום צולב. " + NOT_FULLY_VEGAN,
+        whySelected: "לא אותרה מסעדה טבעונית/ידידותית מאומתת ליד אזור הקניות ב'עיר החדשה' (Mandraki) — לכן חוזרים לעיר העתיקה לארוחה האחרונה, במקום להתפשר על בטיחות האלרגיה. Rustico שונה מכל מסעדה קודמת בטיול (פטיו איטלקי-ים-תיכוני).",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rustico+Restaurant+Rhodes+Old+Town",
         travelTime: "5 דקות מ-Avalon",
         distancePrev: "מ'עיר החדשה' — 15-20 דק'", duration: "כ-45 דקות",
-        noamScore: 7, maayanScore: 7, familyScore: 8,
-        allergyRating: "ok", veganAvailable: true, veganFriendly: true,
-        noamNote: "ארוחה בטוחה ומוכרת לפני הטיסה",
+        noamScore: 6, maayanScore: 6, familyScore: 7,
+        allergyRating: "ok", veganAvailable: true,
+        noamNote: "ארוחה אחרונה לפני הטיסה — לא הזמן להסתכן, ודאו אלרגיה במפורש",
+        altOption: "ONO (5 דק' מהמלון) — האפשרות הכי מוכרת ובטוחה בטיול, גיבוי מומלץ ביום הטיסה עצמו.",
       },
       {
         time: "12:15",
@@ -695,7 +771,7 @@ const DAYS: {
     summary: {
       safety: "🟢",
       safetyNote: SAFETY_BOILERPLATE,
-      foodSafety: "🟢",
+      foodSafety: "🟡",
       walkingComfort: "🟢",
       wow: 6,
       value: 7,
@@ -933,6 +1009,33 @@ function EventRow({ e }: { e: any }) {
                 </div>
               )}
 
+              {/* Restaurant info block — cuisine, vegan status, price, why here */}
+              {e.type === "food" && (e.cuisine || e.veganStatus || e.priceLevel || e.whySelected) && (
+                <div className="mt-2 rounded-xl p-2.5 space-y-1.5" style={{ background: "#fafafa" }}>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {e.cuisine && (
+                      <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#fff", border: "1px solid #e5e5e5", color: "#525252" }}>
+                        {e.cuisine}
+                      </span>
+                    )}
+                    {e.priceLevel && (
+                      <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#fff", border: "1px solid #e5e5e5", color: "#525252" }}>
+                        {e.priceLevel}
+                      </span>
+                    )}
+                  </div>
+                  {e.veganStatus && (
+                    <p style={{ fontSize: 11, color: "#15803d", lineHeight: 1.5 }}><strong>מעמד טבעוני:</strong> {e.veganStatus}</p>
+                  )}
+                  {e.allergyConfidence && (
+                    <p style={{ fontSize: 11, color: "#b45309", lineHeight: 1.5 }}><strong>ביטחון לגבי האלרגיה:</strong> {e.allergyConfidence}</p>
+                  )}
+                  {e.whySelected && (
+                    <p style={{ fontSize: 11, color: "#525252", lineHeight: 1.5 }}><strong>למה כאן:</strong> {e.whySelected}</p>
+                  )}
+                </div>
+              )}
+
               {/* Maps + travel time + expand */}
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 {e.mapsUrl && (
@@ -1015,7 +1118,7 @@ function EventRow({ e }: { e: any }) {
                     <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#f0f9ff" }}>
                       <RefreshCw className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#0284c7" }} />
                       <div>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: "#0284c7", marginBottom: 2 }}>אפשרות חלופית</p>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: "#0284c7", marginBottom: 2 }}>{e.type === "food" ? "מסעדת גיבוי" : "אפשרות חלופית"}</p>
                         <span style={{ fontSize: 12, color: "#075985", lineHeight: 1.5 }}>{e.altOption}</span>
                       </div>
                     </div>
