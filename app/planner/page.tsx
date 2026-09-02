@@ -16,6 +16,20 @@ import {
 // Maayan (10.5): K-Pop, Dance, Animals, Shopping, Interactive experiences
 // Avalon Boutique Hotel is INSIDE Rhodes Old Town (9 Haritos St), steps from
 // the Palace of the Grand Master — all geography below is based on that.
+// A single researched dish recommendation for a restaurant.
+// "confirmed" means the restaurant itself (menu label, allergen sheet, staff
+// statement) or unambiguous review evidence backs the claim — NOT inferred
+// from the dish's name/description/category alone.
+interface Dish {
+  name: string;
+  description: string;
+  vegan: "confirmed" | "uncertain";
+  milkFree: "confirmed" | "uncertain";
+  allergyConfidence: "high" | "medium" | "low";
+  whyRecommended: string;
+  customerFeedback?: string; // real review summary — omitted if none exists, never invented
+}
+
 interface Event {
   time: string;
   label: string;
@@ -37,6 +51,10 @@ interface Event {
   allergyConfidence?: string; // רמת ביטחון לגבי אלרגיית החלב, בלשון כנה
   whySelected?: string;     // למה נבחרה המסעדה הזו דווקא כאן
   priceLevel?: "€" | "€€" | "€€€"; // רמת מחיר יחסית
+  booked?: boolean;         // הזמנה מאושרת בפועל — מציג תג "🎟️ הוזמן"
+  bookingInfo?: string;     // פרטי ההזמנה המאושרת (תאריך, שעה, מס' אורחים, סטטוס)
+  dishes?: Dish[];          // מנות ספציפיות שנחקרו ומומלצות במסעדה הזו
+  dishesNote?: string;      // כשלא נמצאה מנה ספציפית מאומתת — הסבר כן במקום המצאה
   noamScore?: number;       // 1-10 — Astronomy, HP, Rock, Grunge
   maayanScore?: number;     // 1-10 — K-Pop, Animals, Shopping, Dance
   familyScore?: number;     // 1-10 — shared experience quality
@@ -160,6 +178,22 @@ const DAYS: {
         maayanNote: "שקשוקה טבעונית / פנקייק נוטלה טבעוני — אופציה טעימה לבוקר ראשון",
         tip: "לא מצאנו פרוטוקול רשמי ומאומת למניעת זיהום צולב — לכן זו לא 'אפשרות בטוחה' באופן מוחלט, אלא אפשרות טובה בתנאי שמבקשים במפורש זהירות. לא מסעדה טבעונית לחלוטין — יש לוודא את נושא האלרגיה לחלב וזיהום צולב ישירות מול הצוות לפני ההזמנה.",
         altOption: "Bon Bonheur (מאפייה, עיר עתיקה) — בייגל אבוקדו טבעוני, וופלים, דונאטס. לא מאפייה טבעונית ייעודית — יש לוודא היעדר חלב בכל פריט ספציפי מול הצוות לפני הזמנה.",
+        dishes: [
+          {
+            name: "Vegan Nutella Pancakes (פנקייק נוטלה טבעוני)",
+            description: "פנקייק עם ממרח שוקולד-אגוזים טבעוני, מתפריט הבוקר של ONO",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מוגדרת כטבעונית באופן מפורש בתפריט המסעדה, לא רק תיאור כללי",
+            customerFeedback: "מבקרים תיארו כ'רך וטעים', צוין כמנה בולטת בביקורות",
+          },
+          {
+            name: "Vegan Shakshuka (שקשוקה טבעונית)",
+            description: "גרסה טבעונית לשקשוקה המסורתית (עגבניות, פלפלים, תחליף ביצה מבוסס צמחים)",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מסומנת טבעונית בתפריט הבוקר",
+            customerFeedback: "מבקרים ציינו שנהנו ממנה 'במיוחד' בביקורות אונליין",
+          },
+        ],
       },
       {
         time: "10:15",
@@ -196,6 +230,15 @@ const DAYS: {
         noamNote: "פלאפל וחומוס נטולי חלב מטבעם — אבל בקשו לוודא הכנה נפרדת בשל האלרגיה החמורה",
         tip: "ארוחה קלה-בינונית בכוונה — לא ארוחה מלאה מדי, כי הבוקר כבר היה מלא. שומרים כוחות למחר. לא מסעדה טבעונית — ודאו את נושא האלרגיה לחלב וזיהום צולב ישירות מול הצוות.",
         altOption: "RuBisCo (מיצים/סמוזי, אותו רחוב) — בקשו קערת אסאי/סמוזי עם חלב שקדים בלבד, ללא דבש וללא אבקת חלבון מי גבינה. גם כאן לא מסעדה טבעונית מלאה.",
+        dishes: [
+          {
+            name: "Falafel Pita with Hummus (פיתה פלאפל עם חומוס)",
+            description: "פיתה עם פלאפל וחומוס — מנה קלאסית לבנונית",
+            vegan: "uncertain", milkFree: "uncertain", allergyConfidence: "low",
+            whyRecommended: "פלאפל וחומוס הם מתכונים מסורתיים נטולי חלב, ויש ל-Zaytouna קטגוריית 'תפריט טבעוני' כללית באתר — אך לא מצאנו את המנה הזו ספציפית מסומנת טבעונית בתפריט או בביקורת, והמטבח משותף עם שווארמה חלאל וחלבי מילקשייקים",
+            customerFeedback: "ביקורת ציינה שהזמינו 'פיתה פלאפל עם חומוס בכ-5 יורו ומצאו את הפלאפל טעים מאוד' — התייחסות לטעם בלבד, לא לבטיחות אלרגיה",
+          },
+        ],
       },
       {
         time: "14:00",
@@ -258,6 +301,22 @@ const DAYS: {
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
         tip: "הזמינו שוב רק מנות מסומנות Vegan וציינו את האלרגיה. לא מסעדה טבעונית לחלוטין — ודאו זיהום צולב מול הצוות. עדיפות לפשטות ולוודאות ביום הכי עייף של הטיול.",
         altOption: "Archipelagos (כיכר היפוקרטס, כ-6 דק') — תפריט עם מנות טבעוניות/צמחוניות/ללא גלוטן מסומנות, נוף לחומות ולכיכר. גם כאן לא מסעדה טבעונית — ודאו אלרגיה מול הצוות.",
+        dishes: [
+          {
+            name: "Vegan Burger (בורגר טבעוני)",
+            description: "בורגר טבעוני מתפריט הצהריים/ערב של ONO",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מסומן טבעוני בתפריט המסעדה, לא רק תיאור שיווקי",
+            customerFeedback: "לא נמצאה ביקורת ספציפית על הבורגר — המסעדה עצמה מדורגת 4.8/5 עם שבחים כלליים על 'תפריט יצירתי'",
+          },
+          {
+            name: "Avocado Veggie Wrap עם מוצרלה טבעונית",
+            description: "רול ירקות ואבוקדו עם תחליף מוצרלה טבעוני",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "המסעדה מציינת במפורש 'vegan mozzarella' כתחליף לגבינה — לא רק 'ללא גבינה'",
+            customerFeedback: "לא נמצאה ביקורת ספציפית על המנה הזו",
+          },
+        ],
       },
     ],
     summary: {
@@ -304,6 +363,7 @@ const DAYS: {
         noamNote: "דברו עם צוות המלון על האלרגיה מראש — רצוי כבר בערב הקודם, לא רק בבוקר",
         tip: "לא בדקנו פרוטוקול אלרגיה ספציפי מול המלון — זו הזדמנות טובה לשאול בקבלה כבר ביום ההגעה, כדי לדעת מה אפשרי לפני הבוקר הזה.",
         altOption: "אם מעדיפים לצאת: ONO (5 דק' מהמלון, פותח 9:00 — אך זה יאחר את האוטובוס של 08:30, אז זה בעיקר גיבוי אם משנים שעת יציאה).",
+        dishesNote: "ביקורות על ארוחת הבוקר של Avalon מדגישות דווקא פריטים חלביים (יוגורט יווני עם דבש, קפוצ'ינו) — לא נמצאה שום מנה טבעונית/נטולת חלב ספציפית שצוינה בביקורות, למרות שההצהרה הכללית של המלון מזכירה אפשרויות טבעוניות/צמחוניות. לא ממציאים מנה — יש לשאול את הצוות במפורש איזה פריטים בבופה של אותו בוקר בטוחים.",
       },
       {
         time: "08:30",
@@ -392,6 +452,22 @@ const DAYS: {
         wow: true, wowLevel: 8,
         tip: "מקום קטן ומבוקש בעונה — אם אפשר, התקשרו/הודיעו מראש שמגיעים.",
         altOption: "Kalypso Roof Garden — נוף מרשים לא פחות לאקרופוליס, אך אינה מסעדה טבעונית מלאה (יש גם בשר/דגים בתפריט) — רק כגיבוי אם T-Veg סגורה, וחובה לציין אלרגיה חמורה במפורש.",
+        dishes: [
+          {
+            name: "Pita Gyros עם טופו בתיבול טנדורי",
+            description: "גירוס טבעוני בפיתה, עם טופו בתיבול טנדורי במקום בשר",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "high",
+            whyRecommended: "T-Veg היא מסעדה טבעונית 100% — כל המטבח נטול חלב, לא רק המנה הבודדת",
+            customerFeedback: "ביקורות תיארו את הגירוס הטבעוני כ'יוצא מן הכלל', ואפילו 'בעל אכל בשר אהב אותו'",
+          },
+          {
+            name: "Vegan Caesar Salad (סלט קיסר טבעוני)",
+            description: "גרסה טבעונית לסלט קיסר הקלאסי — כנראה עם רוטב מבוסס קשיו/טופו במקום פרמז'ן ומיונז",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "high",
+            whyRecommended: "מטבח טבעוני מלא של המסעדה — אין חלב באתר כלל",
+            customerFeedback: "תואר בביקורת כ'אחד מסלטי הקיסר הטבעוניים הטובים ביותר — פריך, קרמי ומלא בטעם'",
+          },
+        ],
       },
       {
         time: "16:30",
@@ -443,6 +519,7 @@ const DAYS: {
         wow: true, wowLevel: 9,
         tip: "הזמינו מראש (טלפונית) לפחות יום-יומיים מראש — המקום מתמלא. בעת ההזמנה ציינו במפורש 'severe dairy allergy' ובקשו לוודא עם השף לפני ההגעה, לא רק בשולחן.",
         altOption: "Archipelagos (כיכר היפוקרטס, כ-6 דק' מהמלון) — לא דורש הזמנה קפדנית כמו Marco Polo, תפריט עם מנות טבעוניות/צמחוניות/ללא גלוטן מסומנות, נוף לחומות העיר העתיקה. גם כאן — " + NOT_FULLY_VEGAN,
+        dishesNote: "לא אותרה אף מנה טבעונית ספציפית ומאומתת בתפריט. כל המנות שנמצאו בביקורות ובתיאורי התפריט (סלט פירות ים, דניס אפוי, ראגו/טאליאטה) אינן טבעוניות. המסעדה מצהירה באופן כללי ש'ניתן להתאים' לטבעונים/צמחונים/ללא גלוטן — אך זו הצהרה כללית, לא מנה מזוהה. חשוב: אל תניחו ששום מנה ברשימה בטוחה — יש לשאול את המלצר בהגעה איזו מנה ספציפית מוכנה טבעונית באותו ערב.",
       },
     ],
     summary: {
@@ -463,10 +540,10 @@ const DAYS: {
     date: "ספטמבר 9, 2026 · יום רביעי",
     dayLabel: "יום שלישי",
     title: "תרבות, טווסים וכוכבים",
-    subtitle: "Filerimos, ארמון האבירים, Knights Street, Profitis Ilias בלילה",
+    subtitle: "Filerimos, ארמון האבירים, Knights Street, Rhodes Observatory בלילה (מוזמן!)",
     color: "#16a34a",
     bg: "#f0fdf4",
-    noamHighlight: "ארמון הגרנד מאסטר + לילה אסטרונומי ב-Profitis Ilias",
+    noamHighlight: "ארמון הגרנד מאסטר + ליל תצפית מוזמן ב-Rhodes Observatory",
     maayanHighlight: "Filerimos — טווסים חופשיים, מאומת ואמיתי!",
     familyHighlight: "ארמון הגרנד מאסטר ורחוב האבירים ממש ליד המלון",
     events: [
@@ -480,7 +557,7 @@ const DAYS: {
         cuisine: "מאפייה יוונית + פריטים טבעוניים", priceLevel: "€",
         veganStatus: "לא מאפייה טבעונית ייעודית — יש כמה פריטים טבעוניים מזוהים (קולוֹרי, חומוס, טוסט 'גבינה' טבעונית), לא כל התפריט.",
         allergyConfidence: "בינונית: הפריטים הטבעוניים ידועים, אך אין מידע מאומת על זיהום צולב במאפייה. " + NOT_FULLY_VEGAN,
-        whySelected: "בוקר קליל ושונה מהותית מהבוקר הכבד יותר של יום 1 — מאפייה במקום מסעדה, קרוב לחלוטין למלון, ומכין לפני יום ארוך (Filerimos + ארמון + פרופיטיס אליאס בלילה).",
+        whySelected: "בוקר קליל ושונה מהותית מהבוקר הכבד יותר של יום 1 — מאפייה במקום מסעדה, קרוב לחלוטין למלון, ומכין לפני יום ארוך (Filerimos + ארמון + Rhodes Observatory בלילה).",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Old+Town+Corner+Bakery+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-30 דקות",
@@ -489,6 +566,23 @@ const DAYS: {
         noamNote: "בקשו לוודא איזה פריטים באמת נטולי חלב — לא כל המאפייה טבעונית",
         maayanNote: "וופל/גלידת סורבה טבעונית אפשרית בהמשך הרחוב ב-Waffle Art אם בא כוח למתוק",
         altOption: "ONO (5 דק' מהמלון) — מוכר ובטוח מיום 1, גיבוי אמין אם המאפייה לא מתאימה או סגורה.",
+        dishes: [
+          {
+            name: "Vegan Cheese Toast (טוסט 'גבינה' טבעוני)",
+            description: "טוסט עם תחליף גבינה טבעוני",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
+            whyRecommended: "מוגדר במפורש כפריט מ'מגוון המוצרים הטבעוניים' של המאפייה",
+            customerFeedback: "לא נמצאה ביקורת ספציפית על הטוסט — רק שביעות רצון כללית ('מבקרים טבעונים מצאו את המבחר מהנה')",
+          },
+          {
+            name: "חומוס (Hummus)",
+            description: "חומוס, לרוב מוגש עם לחם/פיתה",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
+            whyRecommended: "מרכיב טבעי נטול חלב, מופיע ברשימת הפריטים הטבעוניים של המאפייה",
+            customerFeedback: "לא נמצאה ביקורת ספציפית",
+          },
+        ],
+        tip: "בבקשה שימו לב: זו מאפייה עם משטחי הכנה משותפים לגרסאות לא-טבעוניות (כמו טוסט גבינה רגיל) — סיכון זיהום צולב גבוה יותר מבמסעדת ישיבה.",
       },
       {
         time: "09:30",
@@ -515,17 +609,26 @@ const DAYS: {
         tags: ["מטבח שונה", "סטריט פוד", "ציינו אלרגיה"],
         cost: "€6–10 לאדם (משוער)",
         cuisine: "יווני — גיירוס/פיתה, סטריט פוד", priceLevel: "€",
-        veganStatus: "לא מסעדה טבעונית — אך יש אפשרות גיירוס טבעוני מפורשת בתפריט (לא רק סלט בלי בשר)",
-        allergyConfidence: "בינונית: יש אפשרות טבעונית מוגדרת, אך לא אותר מידע על זיהום צולב במטבח משותף לבשר/חלב. " + NOT_FULLY_VEGAN,
-        whySelected: "חוזרים לעיר העתיקה מפילרימוס בכל מקרה — זו הזדמנות לחוויה שלישית שונה (סטריט פוד יווני) אחרי צמחוני-ים-תיכוני (יום 1) ולבנוני (יום 1). קרוב למלון, בדרך הטבעית בחזרה.",
+        veganStatus: "לא מסעדה טבעונית — יש אפשרות גיירוס טבעוני בתפריט, אך המחקר ברמת המנה מעלה סימני שאלה על עקביות הסימון הטבעוני (ראו מנות מומלצות למטה)",
+        allergyConfidence: "נמוכה: מחקר ברמת המנה מצא דיווחים ש'המיונז הטבעוני' מכיל אבקת ביצה ושהפיתה מכילה ביצים — כלומר הסימון 'טבעוני' של המקום לא תמיד מדויק. בנוסף, טזטיקי (מבוסס יוגורט) מתווסף כברירת מחדל בחלק מהסניפים ויש לבקש בלעדיו. " + NOT_FULLY_VEGAN,
+        whySelected: "חוזרים לעיר העתיקה מפילרימוס בכל מקרה — זו הזדמנות לחוויה שלישית שונה (סטריט פוד יווני) אחרי צמחוני-ים-תיכוני (יום 1) ולבנוני (יום 1). קרוב למלון, בדרך הטבעית בחזרה. עם זאת, בעקבות מחקר ברמת המנה, ONO הופך לבחירה הבטוחה יותר עבור נועם באופן ספציפי.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Pitafan+Yeeros+Rhodes+Old+Town",
         travelTime: "5 דקות מ-Avalon",
         distancePrev: "מפילרימוס — 20 דק' מונית", duration: "כ-30 דקות",
         noamScore: 7, maayanScore: 7, familyScore: 7,
-        allergyRating: "ok", veganAvailable: true,
-        noamNote: "בקשו לוודא שהגריל של הגיירוס הטבעוני נפרד מהבשר/הרטבים עם חלב",
+        allergyRating: "ask", veganAvailable: true,
+        noamNote: "חשוב: בקשו את הגיירוס הטבעוני בלי טזטיקי (מכיל יוגורט/חלב) וללא המיונז 'הטבעוני' אם רגישים גם לביצים — ודאו מול הצוות לפני ההזמנה, לא רק אחריה",
         maayanNote: "חוויית 'סטריט פוד' יווני אמיתי — שונה מכל ארוחה קודמת בטיול",
-        altOption: "ONO (5 דק' מהמלון) — מוכר ובטוח, גיבוי קבוע. אפשרות נוספת לחוויה מיוחדת: Annie's Vegan Food & Bar (Pop-up, 100% טבעוני), פתוחה בדרך כלל בימי ד' 11:00–15:00 לפי המידע שמצאנו — אך זה Pop-up שדורש הזמנה מראש בוואטסאפ ולא מאומת שעדיין פעיל בקיץ 2026.",
+        altOption: "ONO (5 דק' מהמלון) — מוכר ובטוח, גיבוי קבוע ומועדף יותר לנועם לאור הממצאים על PITAFAN. אפשרות נוספת לחוויה מיוחדת: Annie's Vegan Food & Bar (Pop-up, 100% טבעוני), פתוחה בדרך כלל בימי ד' 11:00–15:00 לפי המידע שמצאנו — אך זה Pop-up שדורש הזמנה מראש בוואטסאפ ולא מאומת שעדיין פעיל בקיץ 2026.",
+        dishes: [
+          {
+            name: "Vegan Gyros (בקטניות/עדשים)",
+            description: "גיירוס טבעוני מבוסס שעועית/עדשים בפיתה, עם מיונז 'טבעוני'",
+            vegan: "uncertain", milkFree: "uncertain", allergyConfidence: "low",
+            whyRecommended: "המנה עצמה קיימת ומזוהה בתפריט כאופציה טבעונית, אך המחקר מצא אי-התאמות בתיוג הטבעוני של המקום (ראו הערה למטה) — לכן לא ניתן לסמן אותה 'מאומת' באופן מלא",
+            customerFeedback: "ביקורות ציינו 'מנות גדולות וטעימות'. אך ביקורת ספציפית אחרת חשפה: 'המיונז הטבעוני מכיל אבקת ביצה, והפיתות מכילות ביצים' — ממצא שמעלה ספק לגבי דיוק הסימון הטבעוני של המקום בכללותו. ביקורת נוספת ציינה שהטזטיקי (מבוסס חלב) לא תמיד מוסר כברירת מחדל.",
+          },
+        ],
       },
       {
         time: "14:30",
@@ -561,31 +664,31 @@ const DAYS: {
       },
       {
         time: "17:00",
-        label: "מנוחה במלון — הכנה ללילה הגדול",
-        detail: "17:00–19:00 · חיוני לפני Profitis Ilias · הורידו Stellarium עכשיו",
+        label: "מנוחה במלון — הכנה לערב האסטרונומיה",
+        detail: "17:00–19:00 · מנוחה לפני הערב הגדול · Rhodes Observatory כבר מוזמן — אין לחץ לתכנן, רק להגיע",
         icon: Moon, type: "rest",
-        tags: ["חשוב", "הכנה"],
+        tags: ["מנוחה", "הכנה"],
         cost: null,
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
         travelTime: "המלון",
         distancePrev: "—", duration: "כ-2 שעות",
         noamScore: 6, maayanScore: 5, familyScore: 6,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "הורד Stellarium עכשיו! תכנן מה תחפש בשמיים",
+        noamNote: "אין צורך להוריד אפליקציות הפעם — במצפה יש הדרכה חיה עם Stellarium ומצלמה מקצועית, זה כבר מאורגן",
         astronomy: true,
-        tip: "הורידו Stellarium (חינם), SkySafari, Sky Guide עכשיו — בפסגה קליטה חלשה!",
+        tip: "בניגוד לתצפית עצמאית — הפעם הכל מאורגן על ידי צוות המצפה. אפשר פשוט לנוח בלי הכנות מיוחדות.",
       },
       {
-        time: "19:30",
+        time: "19:00",
         label: "ארוחת ערב — ONO (חזרה מוצדקת שלישית)",
-        detail: "ארוחה קלה וממוקדת לפני נסיעת הלילה ל-Profitis Ilias — לא זמן לנסות מקום לא מוכר",
+        detail: "ארוחה קלה וממוקדת לפני נסיעה קצרה ל-Rhodes Observatory (הזמנה מאושרת ל-21:00) — לא זמן לנסות מקום לא מוכר",
         icon: Utensils, type: "food",
         tags: ["מהיר ובטוח", "5 דק' מהמלון"],
         cost: "€8–12 לאדם (משוער)",
         cuisine: "צמחוני/טבעוני, ים-תיכוני", priceLevel: "€€",
         veganStatus: "מסעדה צמחונית עם מנות טבעוניות מסומנות (לא טבעונית בלעדית)",
         allergyConfidence: "בינונית-גבוהה — מקום מוכר ובטוח מהביקורים הקודמים בטיול",
-        whySelected: "לפני נסיעת לילה של 45 דקות להר — הערב הזה דורש ודאות ומהירות, לא ניסוי. זו הפעם השלישית והאחרונה שחוזרים לכאן בכוונה, ומכאן ואילך אין עוד חזרות בטיול.",
+        whySelected: "לפני הנסיעה למצפה הכוכבים — הערב הזה דורש ודאות ומהירות, לא ניסוי. זו הפעם השלישית והאחרונה שחוזרים לכאן בכוונה, ומכאן ואילך אין עוד חזרות בטיול. אכלנו מוקדם יותר מהתכנון הקודם, כי הנסיעה למצפה קצרה בהרבה מהתכנון הישן.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=ONO+Vegan+Vegetarian+Restaurant+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
@@ -593,64 +696,76 @@ const DAYS: {
         allergyRating: "ok", veganAvailable: true, veganFriendly: true,
         noamNote: "ארוחה קלה לפני הכוכבים — לא כבדה מדי. " + NOT_FULLY_VEGAN,
         altOption: "RuBisCo (מיצים/סמוזי, כ-8 דק') — אם רוצים משהו קליל וממש מהיר במקום ארוחה מלאה. גם כאן לא מטבח טבעוני בלעדי.",
+        dishes: [
+          {
+            name: "Vegan Burger (בורגר טבעוני)",
+            description: "בורגר טבעוני מתפריט הצהריים/ערב של ONO — אותה מנה כמו ביום 1",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מסומן טבעוני בתפריט המסעדה. גם ארוחה מספקת אך לא כבדה מדי לפני הנסיעה למצפה",
+            customerFeedback: "לא נמצאה ביקורת ספציפית על הבורגר",
+          },
+        ],
       },
       {
-        time: "21:00",
-        label: "יציאה ל-Profitis Ilias",
-        detail: "מונית מ-Avalon · גובה 798 מ'",
+        time: "20:00",
+        label: "יציאה ל-Rhodes Observatory",
+        detail: "מונית מ-Avalon (עיר עתיקה) לפאלירקי (Faliraki) · כ-13 ק\"מ · מצפה הכוכבים ממוקם באזור Profitis Amos, פאלירקי — לא באותו הר כמו Profitis Ilias המקורי",
         icon: Navigation, type: "transport",
-        tags: ["Astronomy", "לילה", "הזמינו מונית מראש"],
-        cost: "€20–25 מונית (משוער) הלוך",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Profitis+Ilias+Rhodes",
-        travelTime: "45 דקות",
-        distancePrev: "—", duration: "45 דקות נסיעה",
-        transportOption: "מונית פרטית מוזמנת מראש — מומלץ להזמין גם את הנסיעה חזרה מראש, לא לסמוך על מציאת מונית באתר בלילה",
-        safetyNote: "לא אותר מידע ספציפי המצביע על בעיה בטיחותית באתר עצמו. בכל זאת: הזמינו מונית הלוך-חזור מראש, ודאו טלפון טעון וכיסוי סלולרי, ואל תתפצלו כקבוצה.",
+        tags: ["Astronomy", "מאומת", "הזמינו מונית מראש"],
+        cost: "€15–20 מונית (משוער, הלוך) — מבוסס על טווח מחירים מאומת מרודוס לפאלירקי",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Observatory+Faliraki",
+        travelTime: "כ-20 דקות",
+        distancePrev: "—", duration: "20 דקות נסיעה",
+        transportOption: "מונית פרטית מוזמנת מראש — מומלץ להזמין גם את הנסיעה חזרה מראש. יציאה ב-20:00 נותנת מרווח נוח: 20 דקות נסיעה + הגעה 30 דקות לפני תחילת התצפית (כנדרש ע\"י המצפה) = הגעה סביב 20:30, חצי שעה לפני התחלת המפגש ב-21:00.",
+        safetyNote: "לא אותר מידע המצביע על בעיה בטיחותית באתר — זהו מתחם מצפה כוכבים מאורגן ומאויש, לא הר מבודד. בכל זאת, הזמינו מונית הלוך-חזור מראש כדי לא להיתקע בפאלירקי בלילה.",
         noamScore: 9, maayanScore: 7, familyScore: 8,
         allergyRating: "safe", veganAvailable: true,
         astronomy: true,
-        tip: "קחו: סוודר, מים, פנס ראש, טלפון מלא. בלילה בהר קריר!",
+        tip: "קחו סוודר קל — יושבים בחוץ בגן האסטרונומי חלק מהזמן. אין צורך בציוד מיוחד, הכל מסופק במצפה.",
       },
       {
-        time: "21:45",
-        label: "Profitis Ilias — ספירת כוכבים",
-        detail: "798 מטר · Milky Way גלוי · אפלה יחסית · אין אורות עיר קרובים",
+        time: "20:30",
+        label: "🔭 Rhodes Observatory — ספירת כוכבים",
+        detail: "מצפה כוכבים מקצועי באזור Profitis Amos, פאלירקי · פועל מ-2013 · הדרכה חיה + טלסקופ Celestron C11 + מצלמת עומק אלחוטית לצילום דרך העדשה · תערוכת אסטרופוטוגרפיה וגן אסטרונומי",
         icon: Telescope, type: "activity",
-        tags: ["Astronomy", "WOW", "Milky Way", "נועם-highlight"],
-        cost: "חינם",
-        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Profitis+Ilias+summit+Rhodes",
-        travelTime: "798 מ' גובה",
-        distancePrev: "—", duration: "כ-1.5 שעות",
-        safetyNote: "כמו בכל אתר מבודד בלילה — לא מומלץ להישאר לבד או להתרחק מהקבוצה. אין תאורת רחוב באתר, הביאו פנס.",
+        tags: ["Astronomy", "WOW", "מוזמן ומאושר", "נועם-highlight"],
+        cost: null,
+        booked: true,
+        bookingInfo: "🎟️ הוזמן — 9 בספטמבר 2026 · 21:00 · 3 אורחים · סטטוס: מאושר",
+        mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Observatory+Faliraki",
+        travelTime: "הגעה בכוונה ב-20:30 — חצי שעה לפני תחילת המפגש",
+        distancePrev: "—", duration: "כ-1.5 שעות (כולל 30 דק' הגעה מוקדמת + מפגש של כ-50 דקות)",
+        safetyNote: "מתחם מאויש ומאורגן (לא אתר מבודד) — יש לקחת בחשבון 12 מדרגות בכניסה, לא נגיש לכיסא גלגלים.",
         noamScore: 10, maayanScore: 8, familyScore: 10,
         allergyRating: "safe", veganAvailable: true,
-        noamNote: "ASTRONOMY WOW! Milky Way בעין רגילה. חוויה שתישאר כל החיים",
-        maayanNote: "כוכבים יפים ביחד עם המשפחה בחושך — מרגש",
-        astronomy: true, wow: true, wowLevel: 10, profitisIlias: true, primaryFor: "noam",
-        tip: "הורד Stellarium מראש · ספטמבר = Milky Way בשיא. תנו לעיניים 20 דק' להתרגל.",
+        noamNote: "טלסקופ מקצועי אמיתי (Celestron C11), לא רק עין חופשית — צפייה בירח, כוכבי לכת ועצמי שמיים עמוקים, כולל צילום דרך העדשה למכשיר הנייד. חוויה שתישאר כל החיים",
+        maayanNote: "הדרכה חיה עם תוכנת Stellarium, תערוכת אסטרופוטוגרפיה וגן אסטרונומי בחוץ — מעניין גם למי שלא 'אוטוטו אסטרונום'",
+        astronomy: true, wow: true, wowLevel: 10, primaryFor: "noam",
+        tip: "גיל מינימום באתר (לפי מקורות שונים 8–10) — מעיין (10.5) עומדת בדרישה בכל מקרה. במקרה של עננות, המצפה מקיים הרצאת אסטרונומיה מקורה במקום צפייה בטלסקופ — עדיין חוויה, רק שונה. הפעילות מאושרת ומשולמת מראש; אין צורך בפעולה נוספת מלבד הגעה בזמן.",
       },
       {
-        time: "23:45",
+        time: "22:00",
         label: "חזרה למלון",
-        detail: "מונית חזרה ל-Avalon (מוזמנת מראש)",
+        detail: "מונית חזרה ל-Avalon (מוזמנת מראש) · המפגש מסתיים כ-21:50, זמן קצר לשוטט בגן האסטרונומי ואז חזרה",
         icon: Hotel, type: "transport",
-        tags: ["לילה", "מונית מוזמנת מראש"],
-        cost: "€20–25 מונית (משוער)",
+        tags: ["מונית מוזמנת מראש"],
+        cost: "€15–20 מונית (משוער)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Avalon+Boutique+Hotel+Rhodes",
-        travelTime: "45 דקות",
-        distancePrev: "—", duration: "45 דקות",
+        travelTime: "כ-20 דקות",
+        distancePrev: "—", duration: "20 דקות",
         noamScore: 4, maayanScore: 4, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
+        tip: "חזרה מוקדמת משמעותית לעומת התכנון המקורי (22:20 בערך במקום כמעט חצות) — הודות למרחק הקצר יותר לפאלירקי לעומת פרופיטיס אליאס.",
       },
     ],
     summary: {
       safety: "🟢",
-      safetyNote: SAFETY_BOILERPLATE + " נסיעת הלילה להר מחייבת מונית מוזמנת מראש הלוך וחזור.",
+      safetyNote: SAFETY_BOILERPLATE + " הנסיעה בלילה לפאלירקי (Rhodes Observatory) מחייבת מונית מוזמנת מראש הלוך וחזור, אך מדובר במתחם מאויש ומאורגן, לא אתר מבודד.",
       foodSafety: "🟡",
       walkingComfort: "🟢",
       wow: 9,
-      value: 7,
-      noamWillLove: "מסדרונות ארמון הגרנד מאסטר ולילה עם שביל החלב בפרופיטיס אליאס",
+      value: 8,
+      noamWillLove: "מסדרונות ארמון הגרנד מאסטר וטלסקופ מקצועי אמיתי ב-Rhodes Observatory",
       maayanWillLove: "הטווסים החופשיים בפילרימוס",
     },
   },
@@ -676,16 +791,32 @@ const DAYS: {
         tags: ["מאפייה", "מטבח שונה", "ציינו אלרגיה"],
         cost: "€5–9 לאדם (משוער)",
         cuisine: "מאפייה/בראנץ' מודרני", priceLevel: "€",
-        veganStatus: "לא מאפייה טבעונית ייעודית — יש פריטים טבעוניים מזוהים (בייגל אבוקדו, ככל הנראה חלק מהוופלים/דונאטס), לא כל התפריט.",
-        allergyConfidence: "בינונית: לא אותר תיעוד רשמי על זיהום צולב. " + NOT_FULLY_VEGAN,
+        veganStatus: "לא מאפייה טבעונית ייעודית — יש פריטים טבעוניים מזוהים (בייגל אבוקדו, וופל טבעוני), לא כל התפריט.",
+        allergyConfidence: "נמוכה: מאפייה עם משטחי הכנה ומחבתות משותפים לפריטים לא-טבעוניים, ואין תיעוד רשמי על זיהום צולב. " + NOT_FULLY_VEGAN,
         whySelected: "בוקר אחרון — הזדמנות לחוויה שונה מהמאפייה של יום 3 ומ-ONO, לפני יום קניות וטיסה. עדיין קרוב מאוד למלון.",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Bon+Bonheur+Rhodes",
         travelTime: "5 דקות הליכה",
         distancePrev: "כ-300 מ'", duration: "כ-45 דקות",
         noamScore: 6, maayanScore: 7, familyScore: 7,
-        allergyRating: "ok", veganAvailable: true,
+        allergyRating: "ask", veganAvailable: true,
         maayanNote: "וופל אחרון! לשמור זיכרון",
         altOption: "ONO (5 דק' מהמלון) — האפשרות הכי מוכרת ובטוחה, אם מעדיפים ודאות ביום הטיסה.",
+        dishes: [
+          {
+            name: "Vegan Waffles (וופל טבעוני)",
+            description: "וופל טבעוני, מוגש בביקורות עם ממרח חמאת בוטנים",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
+            whyRecommended: "פריט מזוהה במפורש כטבעוני בתפריט המאפייה",
+            customerFeedback: "ביקורת חיובית: 'כמות נדיבה של חמאת בוטנים על הוופל', תואר כ'טרי ומלא בטעם'. ביקורת אחרת (כללית יותר) ציינה שוופלים וסופגניות היו 'טריים במיוחד'.",
+          },
+          {
+            name: "Vegan Guacamole Bagel (בייגל אבוקדו טבעוני)",
+            description: "בייגל עם גוואקמולה, בצל פריך ועגבניות שרי",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
+            whyRecommended: "פריט מזוהה במפורש כטבעוני בתפריט המאפייה",
+            customerFeedback: "ביקורות מעורבות: חלק תיארו אותו כטעים, אך ביקורת ספציפית אחת ציינה שקיבלה 'חביתת חומוס טבעונית ובייגל אבוקדו יבשים מאוד' — כדאי לקחת בחשבון שהאיכות לא עקבית לפי כל הביקורות.",
+          },
+        ],
       },
       {
         time: "09:30",
@@ -723,6 +854,29 @@ const DAYS: {
         allergyRating: "ok", veganAvailable: true,
         noamNote: "ארוחה אחרונה לפני הטיסה — לא הזמן להסתכן, ודאו אלרגיה במפורש",
         altOption: "ONO (5 דק' מהמלון) — האפשרות הכי מוכרת ובטוחה בטיול, גיבוי מומלץ ביום הטיסה עצמו.",
+        dishes: [
+          {
+            name: "עלי גפן ממולאים (Stuffed Vine Leaves / Dolmades)",
+            description: "עלי גפן ממולאים אורז, מנה יוונית מסורתית",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מוזכרת במפורש כאחת מאפשרויות התפריט הטבעוניות של המסעדה. מתכון מסורתי שאינו כולל חלב מרכיביו",
+            customerFeedback: "ביקורות כלליות תיארו את המטבח כ'טעים ואותנטי' — לא נמצאה ביקורת נקודתית על המנה הזו עצמה",
+          },
+          {
+            name: "סלט חצילים (Eggplant Salad / Melitzanosalata)",
+            description: "סלט חצילים קלויים, מתכון יווני מסורתי",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מוזכרת במפורש כאחת מאפשרויות התפריט הטבעוניות של המסעדה",
+            customerFeedback: "לא נמצאה ביקורת ספציפית על המנה הזו",
+          },
+          {
+            name: "חומוס (Hummus)",
+            description: "חומוס, בדרך כלל מוגש עם פיתה/לחם",
+            vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
+            whyRecommended: "מרכיב טבעי נטול חלב, מוצג בתפריט הטבעוני",
+            customerFeedback: "ביקורת ציינה 'טעים, אך מנת החומוס הייתה קטנה יחסית למחיר' — הערה על כמות, לא על טעם או בטיחות",
+          },
+        ],
       },
       {
         time: "12:15",
@@ -836,7 +990,7 @@ const EVENT_IMAGE_OVERRIDES: Record<string, string> = {
   "Filerimos":                "https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=800&q=70",
   "Palace of the Grand Master": "https://images.unsplash.com/photo-1569587112025-0d460e81a126?auto=format&fit=crop&w=800&q=70",
   "Street of the Knights":  "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=70",
-  "Profitis Ilias":          "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=800&q=70",
+  "Rhodes Observatory":      "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&w=800&q=70",
   "קניות — Zara":            "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=70",
 };
 
@@ -907,7 +1061,7 @@ function EventRow({ e }: { e: any }) {
   const [expanded, setExpanded] = useState(false);
   const s = TYPE_STYLE[e.type as string] ?? TYPE_STYLE.activity;
   const Icon = e.icon as React.FC<{ className?: string; style?: React.CSSProperties }>;
-  const hasExtra = e.tip || e.noamNote || e.maayanNote || e.altOption || e.safetyNote || e.transportOption || e.duration || e.distancePrev;
+  const hasExtra = e.tip || e.noamNote || e.maayanNote || e.altOption || e.safetyNote || e.transportOption || e.duration || e.distancePrev || e.dishes || e.dishesNote;
 
   return (
     <div className="flex gap-3">
@@ -969,29 +1123,45 @@ function EventRow({ e }: { e: any }) {
 
             {/* Content */}
             <div className="flex-1 min-w-0">
-              {/* Title row */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{e.label}</span>
-                    {e.wow && <Star className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#ca8a04" }} />}
-                    {e.harryPotter && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#7c3aed22", color: "#7c3aed" }}>HP</span>}
-                    {e.kpop && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#ec489922", color: "#ec4899" }}>K-Pop</span>}
-                    {e.astronomy && <Telescope className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#0284c7" }} />}
-                    {e.veganFriendly && <Leaf className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />}
-                    {e.primaryFor && <PrimaryBadge primaryFor={e.primaryFor} />}
-                  </div>
-                  <p style={{ fontSize: 13, color: "#737373", marginTop: 2, lineHeight: 1.4 }}>{e.detail}</p>
-                </div>
-                {e.cost && (
-                  <span className="flex-shrink-0 rounded-xl px-2 py-1"
+              {/* Title row — always full card width, never shares a row with price.
+                  Long titles (English restaurant names, "Rhodes Observatory", etc.)
+                  need the whole row to wrap naturally instead of word-by-word. */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#171717" }}>{e.label}</span>
+                {e.booked && (
+                  <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 800, background: "#dcfce7", color: "#15803d" }}>
+                    🎟️ הוזמן
+                  </span>
+                )}
+                {e.wow && <Star className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#ca8a04" }} />}
+                {e.harryPotter && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#7c3aed22", color: "#7c3aed" }}>HP</span>}
+                {e.kpop && <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#ec489922", color: "#ec4899" }}>K-Pop</span>}
+                {e.astronomy && <Telescope className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#0284c7" }} />}
+                {e.veganFriendly && <Leaf className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />}
+                {e.primaryFor && <PrimaryBadge primaryFor={e.primaryFor} />}
+              </div>
+
+              {/* Price — its own row below the title, so it can never squeeze
+                  the title into a narrow column or sit on top of it. */}
+              {e.cost && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className="inline-block rounded-xl px-2 py-1"
                     style={{ fontSize: 11, fontWeight: 700,
                       background: e.cost === "חינם" ? "#f0fdf4" : "#f5f5f5",
                       color:      e.cost === "חינם" ? "#16a34a"  : "#525252" }}>
                     {e.cost}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
+
+              <p style={{ fontSize: 13, color: "#737373", marginTop: 6, lineHeight: 1.4 }}>{e.detail}</p>
+
+              {/* Booking confirmation — shown prominently, not tucked in "details" */}
+              {e.bookingInfo && (
+                <div className="mt-2 rounded-xl p-2.5" style={{ background: "#dcfce7", border: "1px solid #bbf7d0" }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "#15803d", lineHeight: 1.5 }}>{e.bookingInfo}</p>
+                </div>
+              )}
 
               {/* 3-score bars */}
               {(e.noamScore || e.maayanScore || e.familyScore) && (
@@ -1033,6 +1203,38 @@ function EventRow({ e }: { e: any }) {
                   {e.whySelected && (
                     <p style={{ fontSize: 11, color: "#525252", lineHeight: 1.5 }}><strong>למה כאן:</strong> {e.whySelected}</p>
                   )}
+                </div>
+              )}
+
+              {/* Recommended dishes — compact teaser, always visible (not buried in "פרטים").
+                  Full description + customer feedback is in the expanded section below. */}
+              {e.type === "food" && e.dishes && e.dishes.length > 0 && (
+                <div className="mt-2 rounded-xl p-2.5" style={{ background: "#eff6ff", border: "1px solid #dbeafe" }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#1d4ed8", marginBottom: 4 }}>🍽️ מומלץ להזמין כאן</p>
+                  <div className="space-y-1">
+                    {e.dishes.map((d: Dish) => (
+                      <div key={d.name} className="flex flex-wrap items-center gap-1.5">
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#171717" }}>{d.name}</span>
+                        <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 700, background: d.vegan === "confirmed" ? "#dcfce7" : "#f5f5f5", color: d.vegan === "confirmed" ? "#15803d" : "#737373" }}>
+                          {d.vegan === "confirmed" ? "🌱 טבעוני" : "🌱 טבעוני לא ודאי"}
+                        </span>
+                        <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 700, background: d.milkFree === "confirmed" ? "#dbeafe" : "#f5f5f5", color: d.milkFree === "confirmed" ? "#1d4ed8" : "#737373" }}>
+                          {d.milkFree === "confirmed" ? "🥛✕ ללא חלב" : "🥛? לא ודאי"}
+                        </span>
+                        <span className="rounded-full px-1.5 py-0.5"
+                          style={{ fontSize: 9, fontWeight: 700,
+                            background: d.allergyConfidence === "high" ? "#dcfce7" : d.allergyConfidence === "medium" ? "#fef9ec" : "#fef2f2",
+                            color:      d.allergyConfidence === "high" ? "#15803d" : d.allergyConfidence === "medium" ? "#b45309" : "#dc2626" }}>
+                          ביטחון {d.allergyConfidence === "high" ? "גבוה" : d.allergyConfidence === "medium" ? "בינוני" : "נמוך"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {e.type === "food" && e.dishesNote && (!e.dishes || e.dishes.length === 0) && (
+                <div className="mt-2 rounded-xl p-2.5" style={{ background: "#fef2f2", border: "1px solid #fecaca" }}>
+                  <p style={{ fontSize: 11, color: "#991b1b", lineHeight: 1.5 }}><strong>🍽️ מנות מומלצות:</strong> {e.dishesNote}</p>
                 </div>
               )}
 
@@ -1129,6 +1331,51 @@ function EventRow({ e }: { e: any }) {
                       <div>
                         <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 2 }}>הערת בטיחות</p>
                         <span style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5 }}>{e.safetyNote}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Full dish-level detail — description, individual badges, real customer feedback */}
+                  {e.dishes && e.dishes.length > 0 && (
+                    <div className="rounded-xl p-2.5 space-y-2.5" style={{ background: "#eff6ff", border: "1px solid #dbeafe" }}>
+                      <p style={{ fontSize: 12, fontWeight: 800, color: "#1d4ed8" }}>🍽️ מנות מומלצות — מחקר לפי מסעדה</p>
+                      {e.dishes.map((d: Dish) => (
+                        <div key={d.name} className="rounded-lg p-2" style={{ background: "#fff", border: "1px solid #e0f2fe" }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{d.name}</p>
+                          <p style={{ fontSize: 11, color: "#525252", marginTop: 2, lineHeight: 1.5 }}>{d.description}</p>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: d.vegan === "confirmed" ? "#dcfce7" : "#f5f5f5", color: d.vegan === "confirmed" ? "#15803d" : "#737373" }}>
+                              טבעוני: {d.vegan === "confirmed" ? "מאומת" : "לא ודאי"}
+                            </span>
+                            <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: d.milkFree === "confirmed" ? "#dbeafe" : "#f5f5f5", color: d.milkFree === "confirmed" ? "#1d4ed8" : "#737373" }}>
+                              ללא חלב: {d.milkFree === "confirmed" ? "מאומת" : "לא ודאי"}
+                            </span>
+                            <span className="rounded-full px-2 py-0.5"
+                              style={{ fontSize: 10, fontWeight: 700,
+                                background: d.allergyConfidence === "high" ? "#dcfce7" : d.allergyConfidence === "medium" ? "#fef9ec" : "#fef2f2",
+                                color:      d.allergyConfidence === "high" ? "#15803d" : d.allergyConfidence === "medium" ? "#b45309" : "#dc2626" }}>
+                              ביטחון אלרגיה: {d.allergyConfidence === "high" ? "גבוה" : d.allergyConfidence === "medium" ? "בינוני" : "נמוך"}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: 11, color: "#3730a3", marginTop: 4, lineHeight: 1.5 }}><strong>למה מומלץ:</strong> {d.whyRecommended}</p>
+                          {d.customerFeedback ? (
+                            <p style={{ fontSize: 11, color: "#525252", marginTop: 3, lineHeight: 1.5 }}><strong>מה לקוחות אומרים:</strong> {d.customerFeedback}</p>
+                          ) : (
+                            <p style={{ fontSize: 11, color: "#a3a3a3", marginTop: 3, lineHeight: 1.5, fontStyle: "italic" }}>לא נמצאו ביקורות ספציפיות על המנה הזו — רק שביעות רצון כללית מהמקום.</p>
+                          )}
+                        </div>
+                      ))}
+                      <p style={{ fontSize: 10, color: "#60a5fa", lineHeight: 1.5 }}>
+                        ⚠ "טבעוני" ו"ללא חלב" מתייחסים למנה עצמה, לא לזיהום צולב במטבח. גם כשהביטחון גבוה — ציינו אלרגיה חמורה לחלב בכל הזמנה.
+                      </p>
+                    </div>
+                  )}
+                  {e.dishesNote && (!e.dishes || e.dishes.length === 0) && (
+                    <div className="flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fef2f2" }}>
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#dc2626" }} />
+                      <div>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: "#dc2626", marginBottom: 2 }}>לא נמצאה מנה ספציפית מאומתת</p>
+                        <span style={{ fontSize: 12, color: "#991b1b", lineHeight: 1.5 }}>{e.dishesNote}</span>
                       </div>
                     </div>
                   )}
@@ -1406,8 +1653,11 @@ function AstronomySection() {
             <Telescope className="h-5 w-5" style={{ color: "#93c5fd" }} />
           </div>
           <div className="text-right">
-            <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>Profitis Ilias — ספירת כוכבים</p>
-            <p style={{ fontSize: 12, color: "#64748b" }}>מדריך אסטרונומיה לנועם · יום 3 · 21:45–23:15</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>🔭 Rhodes Observatory</p>
+              <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 800, background: "#dcfce7", color: "#15803d" }}>🎟️ הוזמן</span>
+            </div>
+            <p style={{ fontSize: 12, color: "#64748b" }}>יום 3 · 9 בספטמבר · 21:00 · 3 אורחים</p>
           </div>
         </div>
         {open ? <ChevronUp className="h-5 w-5 flex-shrink-0" style={{ color: "#64748b" }} />
@@ -1416,12 +1666,16 @@ function AstronomySection() {
 
       {open && (
         <div className="mt-2 space-y-4 rounded-2xl p-5" style={{ background: "#0f172a", border: "1px solid #1e293b" }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>למה Profitis Ilias?</p>
+          <div className="rounded-xl p-3" style={{ background: "#052e16", border: "1px solid #166534" }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#4ade80" }}>🎟️ ההזמנה מאושרת</p>
+            <p style={{ fontSize: 12, color: "#bbf7d0", marginTop: 3 }}>9 בספטמבר 2026 · 21:00 · 3 אורחים · סטטוס: מאושר. אין צורך לתאם שוב — רק להגיע בזמן.</p>
+          </div>
+          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>מה זה Rhodes Observatory?</p>
           {[
-            { t: "798 מ' גובה", d: "מעל האוויר העכור — שמיים צלולים יחסית. Milky Way נראה בעין רגילה." },
-            { t: "מעט אורות סביב", d: "אין ריכוז עירוני גדול בפסגה עצמה." },
-            { t: "אוויר ים נקי", d: "רוחות ים מנקות האווירה — שקיפות אסטרונומית טובה בספטמבר." },
-            { t: "קל להגיע", d: "מונית מרודוס — 45 דקות. ללא ציוד מיוחד, אך מומלץ להזמין מונית הלוך-חזור מראש." },
+            { t: "מצפה מקצועי, לא הר פראי", d: "פועל מ-2013 באזור Profitis Amos, פאלירקי (Faliraki) — כ-13 ק\"מ / כ-20 דק' נסיעה מהעיר העתיקה. שונה לגמרי מ-Profitis Ilias שתוכנן בעבר." },
+            { t: "טלסקופ Celestron C11", d: "צפייה מודרכת בירח, כוכבי לכת ועצמי שמיים עמוקים, כולל מצלמה אלחוטית לצילום דרך העדשה למכשיר הנייד." },
+            { t: "הדרכה חיה עם Stellarium", d: "מדריך מוביל את הערב ומסביר מה רואים — לא צריך לדעת שום דבר מראש." },
+            { t: "50 דקות תצפית", d: "מומלץ להגיע 30 דקות מראש. פתוח כל יום מלבד ראשון, 19:30–23:00." },
           ].map(item => (
             <div key={item.t} className="rounded-xl p-3" style={{ background: "#1e293b" }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>{item.t}</p>
@@ -1429,26 +1683,13 @@ function AstronomySection() {
             </div>
           ))}
           <div style={{ height: 1, background: "#1e293b" }} />
-          <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>אפליקציות לנועם</p>
-          {[
-            { name: "Stellarium", note: "חינם · AR מצלמה · מזהה כל כוכב", badge: "חינם" },
-            { name: "SkySafari",  note: "מפות שמיים · עקיבת כוכבי לכת",  badge: "₪" },
-            { name: "Sky Guide",  note: "הכי יפה · Apple only",            badge: "₪" },
-          ].map(app => (
-            <div key={app.name} className="flex items-center gap-3 rounded-xl p-3" style={{ background: "#1e293b" }}>
-              <Telescope className="h-5 w-5 flex-shrink-0" style={{ color: "#93c5fd" }} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0" }}>{app.name}</p>
-                  <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: "#0f172a", color: "#93c5fd" }}>{app.badge}</span>
-                </div>
-                <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{app.note}</p>
-              </div>
-            </div>
-          ))}
           <div className="rounded-xl p-3" style={{ background: "#1e3a5f" }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>זמן מומלץ: 21:30–22:30</p>
-            <p style={{ fontSize: 12, color: "#bfdbfe", marginTop: 3 }}>ספטמבר = Milky Way בשיא. תנו לעיניים 20 דקות להתרגל לחושך. קחו סוודר!</p>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#93c5fd" }}>אם מעונן</p>
+            <p style={{ fontSize: 12, color: "#bfdbfe", marginTop: 3 }}>לפי המצפה — בלילות מעוננים מתקיימת הרצאת אסטרונומיה מקורה (עם מצגת, באנגלית/גרמנית/יוונית) במקום צפייה בטלסקופ. עדיין חוויה, רק שונה מהמתוכנן.</p>
+          </div>
+          <div className="rounded-xl p-3" style={{ background: "#1e293b" }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0" }}>גיל מינימום ונגישות</p>
+            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 3 }}>מקורות שונים מציינים גיל מינימום 8–10 — מעיין (10.5) עומדת בדרישה. יש 12 מדרגות בכניסה, לא נגיש לכיסא גלגלים. עגלות תינוקות אינן מותרות בפנים.</p>
           </div>
         </div>
       )}
