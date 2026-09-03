@@ -6,8 +6,10 @@ import {
   AlertCircle, Plus, Trash2, Download, FileJson,
   TrendingUp, TrendingDown, Edit2, Check, X,
   Star, MapPin, ChevronDown, ChevronUp, CheckCircle2,
-  Wallet,
+  Wallet, RefreshCw, ChevronRight,
 } from "lucide-react";
+import { DAYS, computeDayCost, computeTripCost, computeMealTypeTotals, GIRLS_SHOPPING_BUDGET_ILS, type Dish } from "@/app/planner/page";
+import { EUR_TO_ILS, RATE_SOURCE, ils, fmtMoney, fmtIls, fmtEur, STATUS_LABEL, STATUS_COLOR } from "@/lib/currency";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface BudgetCategory {
@@ -32,14 +34,32 @@ interface BudgetState {
   expenses:   Expense[];
 }
 
+// ─── Trip cost model (from the actual itinerary in /planner) ──────────────────
+// Single source of truth: DAYS lives in app/planner/page.tsx, this page only
+// reads it. Every € figure below flows through the SAME EUR_TO_ILS rate.
+const TRIP = computeTripCost();
+const MEALS = computeMealTypeTotals();
+// Items whose price is confirmed to have been paid but that this session could
+// not find/verify a number for (e.g. Rhodes Observatory — already booked, but
+// no reliable current ticket price turned up in research). Listed explicitly
+// rather than silently treated as €0.
+const UNPRICED_BOOKED_ITEMS = DAYS.flatMap(d => d.events)
+  .filter(e => e.costStatus === "unknown")
+  .map(e => e.label);
+
 // ─── Defaults ─────────────────────────────────────────────────────────────────
+// Food/Transport/Activities below are now derived from the real itinerary
+// (computeTripCost) instead of placeholder guesses — see the "תקציב מפורט
+// לפי המסלול" section further down for the full day-by-day breakdown these
+// numbers come from. Flights/Hotel remain the app's stored figures — Hotel is
+// now €813 (confirmed, actual amount paid), converted via the single shared rate.
 const DEFAULT_CATEGORIES: BudgetCategory[] = [
-  { id: "flights",    label: "טיסות",    planned: 3992, color: "#7c3aed", purchased: true  },
-  { id: "hotel",      label: "מלון",     planned: 2896, color: "#3b82f6", purchased: true  },
-  { id: "food",       label: "אוכל",     planned: 1200, color: "#22c55e", purchased: false },
-  { id: "transport",  label: "תחבורה",   planned: 300,  color: "#f59e0b", purchased: false },
-  { id: "shopping",   label: "קניות",    planned: 1000, color: "#ec4899", purchased: false },
-  { id: "activities", label: "אטרקציות", planned: 0,    color: "#06b6d4", purchased: false },
+  { id: "flights",    label: "טיסות",    planned: 3992,    color: "#7c3aed", purchased: true  },
+  { id: "hotel",      label: "מלון",     planned: ils(813), color: "#3b82f6", purchased: true  },
+  { id: "food",       label: "אוכל",     planned: ils(TRIP.totals.food),       color: "#22c55e", purchased: false },
+  { id: "transport",  label: "תחבורה",   planned: ils(TRIP.totals.transport),  color: "#f59e0b", purchased: false },
+  { id: "shopping",   label: "קניות",    planned: GIRLS_SHOPPING_BUDGET_ILS,   color: "#ec4899", purchased: false },
+  { id: "activities", label: "אטרקציות", planned: ils(TRIP.totals.activities), color: "#06b6d4", purchased: false },
   { id: "emergency",  label: "חירום",    planned: 500,  color: "#ef4444", purchased: false },
 ];
 
@@ -66,7 +86,7 @@ const fmtDate  = (iso: string) => new Date(iso).toLocaleDateString("he-IL", { da
 const HOTELS = [
   {
     id: "avalon", name: "Avalon Boutique Hotel", nameShort: "Avalon",
-    price: 390, ils: 1560, location: "New Town",
+    price: 813, ils: ils(813), location: "New Town", // €813 confirmed — actual amount paid
     distanceRestaurants: "8 דקות", distanceAttractions: "12 דקות",
     scores: { familyMatch: 88, wow: 87, value: 90, milkAllergy: 82 },
     isPrimary: true,
@@ -108,12 +128,31 @@ function Donut({ pct, color, label, value }: { pct: number; color: string; label
   );
 }
 
+// Reasonable per-dish family quantity — never assumes 3 full mains automatically.
+// Shareable sides (hummus, salads) get "1, לשיתוף"; mains get "כ-2, לא בהכרח 3 שלמות"
+// since the girls often split or go lighter — matches how the meal totals were built.
+function dishQtyNote(name: string): string {
+  if (/חומוס|Hummus|סלט|Salad|גפן|Vine Leaves/i.test(name)) return "1 מנה, לשיתוף בין השלושה";
+  return "כ-2 מנות ל-3 אנשים (לא תמיד 3 שלמות — לפעמים חולקים)";
+}
+
+function StatusChip({ status }: { status: "confirmed" | "estimated" | "unknown" }) {
+  return (
+    <span className="rounded-full px-2 py-0.5" style={{ fontSize: 9, fontWeight: 700, background: STATUS_COLOR[status].bg, color: STATUS_COLOR[status].color }}>
+      {STATUS_LABEL[status]}
+    </span>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function BudgetPage() {
   const [data,          setData]          = useState<BudgetState>(DEFAULT_STATE);
   const [loaded,        setLoaded]        = useState(false);
   const [showForm,      setShowForm]      = useState(false);
   const [showCharts,    setShowCharts]    = useState(false);
+  const [showDaily,     setShowDaily]     = useState(true);
+  const [showDishes,    setShowDishes]    = useState(false);
+  const [openDay,       setOpenDay]       = useState<number | null>(1);
   const [showHotels,    setShowHotels]    = useState(true);
   const [editCatId,     setEditCatId]     = useState<string | null>(null);
   const [editVal,       setEditVal]       = useState("");
@@ -203,6 +242,75 @@ export default function BudgetPage() {
               style={{ border: "1px solid #e5e5e5" }} aria-label="PDF"><Download className="h-5 w-5 text-neutral-500" /></button>
           </div>
         </div>
+
+        {/* ── Exchange rate — used consistently for every € figure on this page ── */}
+        <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: "#f5f3ff", border: "1px solid #ddd6fe" }}>
+          <RefreshCw className="h-5 w-5 flex-shrink-0" style={{ color: "#7c3aed" }} />
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 800, color: "#4c1d95" }}>שער חליפין בשימוש: €1 ≈ ₪{EUR_TO_ILS}</p>
+            <p style={{ fontSize: 11, color: "#7c3aed" }}>מקור: {RATE_SOURCE} · אותו שער בדיוק בכל מקום באפליקציה</p>
+          </div>
+        </div>
+
+        {/* ── Final summary — the whole trip in one glance ── */}
+        {(() => {
+          const flightsIls  = 3992;
+          const hotelIls    = ils(813); // €813 confirmed — actual amount paid
+          const foodIls     = ils(TRIP.totals.food);
+          const attrIls     = ils(TRIP.totals.activities);
+          const transIls    = ils(TRIP.totals.transport);
+          const shopIls     = GIRLS_SHOPPING_BUDGET_ILS;
+          const otherIls    = 0;
+          const grandTotal  = flightsIls + hotelIls + foodIls + attrIls + transIls + shopIls + otherIls;
+          const rows = [
+            { icon: "✈️", label: "טיסות",     val: flightsIls, status: "confirmed" as const },
+            { icon: "🏨", label: "מלון",       val: hotelIls,   status: "confirmed" as const },
+            { icon: "🍽️", label: "אוכל",       val: foodIls,    status: "estimated" as const },
+            { icon: "🎟️", label: "אטרקציות",   val: attrIls,    status: "confirmed" as const },
+            { icon: "🚕", label: "תחבורה",     val: transIls,   status: "estimated" as const },
+            { icon: "🛍️", label: "קניות",      val: shopIls,    status: "estimated" as const },
+            { icon: "💳", label: "אחר",        val: otherIls,   status: "unknown" as const },
+          ];
+          return (
+            <div className="overflow-hidden rounded-3xl" style={{ background: "#171717" }}>
+              <div className="p-6">
+                <p style={{ fontSize: 13, color: "#a3a3a3", marginBottom: 4 }}>סיכום כולל — כל הטיול</p>
+                <div className="mb-5 space-y-2">
+                  {rows.map(r => (
+                    <div key={r.label} className="flex items-center justify-between">
+                      <span style={{ fontSize: 14, color: "#e5e5e5" }}>{r.icon} {r.label}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full px-2 py-0.5" style={{ fontSize: 9, fontWeight: 700, background: STATUS_COLOR[r.status].bg, color: STATUS_COLOR[r.status].color }}>
+                          {STATUS_LABEL[r.status]}
+                        </span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", minWidth: 90, textAlign: "left", direction: "ltr" }}>{fmtIls(r.val)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-end justify-between border-t pt-4" style={{ borderColor: "rgba(255,255,255,0.12)" }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>TOTAL TRIP</span>
+                  <div style={{ textAlign: "left", direction: "ltr" }}>
+                    <p style={{ fontSize: 30, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{fmtEur(grandTotal / EUR_TO_ILS)}</p>
+                    <p style={{ fontSize: 13, color: "#a3a3a3" }}>≈ {fmtIls(grandTotal)}</p>
+                  </div>
+                </div>
+                {UNPRICED_BOOKED_ITEMS.length > 0 && (
+                  <div className="mt-4 rounded-xl p-3" style={{ background: "rgba(220,38,38,0.15)" }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "#fca5a5" }}>🔴 לא כלול בסכום — לא אותר מחיר מאומת:</p>
+                    <p style={{ fontSize: 12, color: "#fecaca", marginTop: 2 }}>{UNPRICED_BOOKED_ITEMS.join(", ")} — כבר הוזמן ושולם, אך המחיר בפועל לא ידוע לנו. אנא הוסיפו את הסכום מאישור ההזמנה.</p>
+                  </div>
+                )}
+                <div className="mt-3 rounded-xl p-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+                  <p style={{ fontSize: 12, color: "#a3a3a3", lineHeight: 1.6 }}>
+                    🛍️ תקציב קניות לבנות: <strong style={{ color: "#fff" }}>₪{GIRLS_SHOPPING_BUDGET_ILS.toLocaleString("he-IL")}</strong> סה"כ לשתיהן ·
+                    הערכה: <strong style={{ color: "#4ade80" }}>ריאלי</strong> (פירוט למטה בסעיף הקניות)
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Over-budget alert */}
         {overBudgetCats.length > 0 && (
@@ -400,11 +508,16 @@ export default function BudgetPage() {
                 })}
               </div>
 
-              {/* Price diff */}
+              {/* Price diff — computed both ways so this stays correct regardless of which
+                  hotel is actually cheaper (Avalon's confirmed €813 now exceeds In Camera's
+                  €435 estimate, reversing which side "saves"). */}
               <div className="mb-3 flex items-center justify-center gap-2 rounded-xl p-3" style={{ background: "#f5f5f5" }}>
                 <Wallet className="h-4 w-4 text-neutral-400" />
                 <span style={{ fontSize: 13, color: "#525252" }}>
-                  הפרש: <strong>€{Math.abs(HOTELS[0].price - HOTELS[1].price)}</strong> (₪{Math.abs(HOTELS[0].ils - HOTELS[1].ils).toLocaleString()}) חסכון עם Avalon
+                  הפרש: <strong>€{Math.abs(HOTELS[0].price - HOTELS[1].price)}</strong> (₪{Math.abs(HOTELS[0].ils - HOTELS[1].ils).toLocaleString()}) —
+                  {HOTELS[0].price < HOTELS[1].price
+                    ? ` ${HOTELS[0].nameShort} זול יותר`
+                    : ` ${HOTELS[1].nameShort} זול יותר (משוער — ${HOTELS[0].nameShort} הוא הסכום המאומת בפועל)`}
                 </span>
               </div>
 
@@ -468,7 +581,20 @@ export default function BudgetPage() {
                 <div>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "#92400e" }}>הוזמן: Avalon Boutique Hotel</p>
                   <p style={{ fontSize: 13, color: "#a16207", lineHeight: 1.5 }}>
-                    New Town · ערך מצוין (90/100) · €390 לכל הטיול · 12 דקות הליכה לעיר העתיקה
+                    בלב העיר העתיקה (לא New Town) · צעדים מארמון הגרנד מאסטר · ערך מצוין (90/100)
+                  </p>
+                </div>
+              </div>
+
+              {/* Price confirmed — was previously flagged as a discrepancy (€390 vs ₪2,896);
+                  resolved with the actual paid amount. */}
+              <div className="mt-3 flex items-start gap-3 rounded-2xl p-4" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: "#16a34a" }} />
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#15803d" }}>🟢 מחיר המלון מאומת</p>
+                  <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.6, marginTop: 3 }}>
+                    <strong>{fmtEur(813)} (≈ {fmtIls(ils(813))})</strong> — הסכום ששולם בפועל עבור כל השהות, לפי אישור המשתמש.
+                    זה מחליף את שני המספרים הסותרים שהופיעו כאן קודם (€390 / ₪2,896), שלא היה להם מקור מאומת.
                   </p>
                 </div>
               </div>
@@ -560,6 +686,204 @@ export default function BudgetPage() {
               </div>
             )}
 
+          </div>
+        </div>
+
+        {/* ── Daily budget — day by day, from the actual itinerary ── */}
+        <div>
+          <button onClick={() => setShowDaily(v => !v)}
+            className="flex w-full cursor-pointer items-center justify-between rounded-2xl p-4 transition-colors hover:bg-neutral-50"
+            style={{ border: "1px solid #e5e5e5" }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>תקציב יומי לפי המסלול</span>
+            {showDaily ? <ChevronUp className="h-5 w-5 text-neutral-400" /> : <ChevronDown className="h-5 w-5 text-neutral-400" />}
+          </button>
+          {showDaily && (
+            <div className="mt-3 space-y-2">
+              {TRIP.perDay.map(({ day, title, cost }) => {
+                const dayMeta = DAYS.find(d => d.day === day)!;
+                const isOpen = openDay === day;
+                return (
+                  <div key={day} className="overflow-hidden rounded-2xl" style={{ border: "1px solid #f0f0f0" }}>
+                    <button onClick={() => setOpenDay(isOpen ? null : day)}
+                      className="flex w-full cursor-pointer items-center justify-between p-4 text-right transition-colors hover:bg-neutral-50">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: dayMeta.bg }}>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: dayMeta.color }}>{day}</span>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "#171717" }}>{title}</p>
+                          <p style={{ fontSize: 11, color: "#a3a3a3" }}>{dayMeta.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div style={{ textAlign: "left", direction: "ltr" }}>
+                          <p style={{ fontSize: 15, fontWeight: 800, color: "#171717" }}>{fmtEur(cost.total)}</p>
+                          <p style={{ fontSize: 10, color: "#a3a3a3" }}>≈ {fmtIls(ils(cost.total))}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 text-neutral-300" style={{ transform: isOpen ? "rotate(-90deg)" : "none", transition: "transform .2s" }} />
+                      </div>
+                    </button>
+                    {isOpen && (
+                      <div className="border-t p-4" style={{ borderColor: "#f0f0f0", background: "#fafafa" }}>
+                        <div className="space-y-1.5">
+                          {([
+                            ["🎟️ אטרקציות", cost.activities],
+                            ["🚕 תחבורה",   cost.transport],
+                            ["🍽️ אוכל",     cost.food],
+                            ["🛍️ קניות",    cost.shopping],
+                            ["💳 אחר",      cost.other],
+                          ] as const).filter(([, v]) => v > 0).map(([label, v]) => (
+                            <div key={label} className="flex items-center justify-between">
+                              <span style={{ fontSize: 13, color: "#525252" }}>{label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{fmtMoney(v)}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: "#e5e5e5" }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: "#171717" }}>סה"כ יום {day}</span>
+                          <span style={{ fontSize: 15, fontWeight: 900, color: "#171717" }}>{fmtMoney(cost.total)}</span>
+                        </div>
+                        <p style={{ fontSize: 11, color: "#a3a3a3", marginTop: 4 }}>
+                          🟢 מאומת: {fmtMoney(cost.confirmed)} · 🟡 משוער: {fmtMoney(cost.estimated)}
+                          {DAYS.find(d => d.day === day)!.events.some(e => e.costStatus === "unknown") && " · 🔴 יש פריט/ים ללא מחיר ידוע (ראו למטה)"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              <div className="rounded-2xl p-4" style={{ background: "#171717" }}>
+                <div className="flex items-center justify-between">
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>סה"כ 4 ימים (אוכל + תחבורה + אטרקציות)</span>
+                  <div style={{ textAlign: "left", direction: "ltr" }}>
+                    <p style={{ fontSize: 20, fontWeight: 900, color: "#fff" }}>{fmtEur(TRIP.totals.total)}</p>
+                    <p style={{ fontSize: 12, color: "#a3a3a3" }}>≈ {fmtIls(ils(TRIP.totals.total))}</p>
+                  </div>
+                </div>
+                <p style={{ fontSize: 11, color: "#737373", marginTop: 6 }}>
+                  לא כולל טיסות, מלון (יש להם קטגוריה נפרדת למעלה) או קניות הבנות (₪{GIRLS_SHOPPING_BUDGET_ILS} — תקציב קבוע, לא נספר פה).
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Food budget by meal type ── */}
+        <div className="rounded-2xl p-4" style={{ border: "1px solid #f0f0f0" }}>
+          <div className="mb-3 flex items-center gap-2">
+            <Utensils className="h-4 w-4" style={{ color: "#22c55e" }} />
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "#171717" }}>תרחיש תקציב אוכל — לפי סוג ארוחה</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {[
+              { label: "בוקר",   val: MEALS.breakfast },
+              { label: "צהריים", val: MEALS.lunch },
+              { label: "ערב",    val: MEALS.dinner },
+            ].map(m => (
+              <div key={m.label} className="rounded-xl p-3 text-center" style={{ background: "#f0fdf4" }}>
+                <p style={{ fontSize: 11, color: "#166534" }}>{m.label}</p>
+                <p style={{ fontSize: 15, fontWeight: 900, color: "#15803d", marginTop: 2 }}>{fmtEur(m.val)}</p>
+                <p style={{ fontSize: 10, color: "#16a34a" }}>≈ {fmtIls(ils(m.val))}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between border-t pt-2" style={{ borderColor: "#f0f0f0" }}>
+            <span style={{ fontSize: 12, color: "#525252" }}>ממוצע יומי (4 ימים)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{fmtMoney(MEALS.dailyAverage)}</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between">
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#171717" }}>סה"כ אוכל לכל הטיול</span>
+            <span style={{ fontSize: 15, fontWeight: 900, color: "#171717" }}>{fmtMoney(MEALS.tripFood)}</span>
+          </div>
+          <p style={{ fontSize: 10, color: "#a3a3a3", marginTop: 6 }}>
+            כולל את כל המנות הטבעוניות המומלצות שנחקרו (ONO, T-Veg, Zaytouna, PITAFAN, Rustico ועוד) · 🟡 רוב הסכומים משוערים — ראו סטטוס מדויק בכל מסעדה למטה.
+          </p>
+        </div>
+
+        {/* ── Restaurant & dish prices ── */}
+        <div>
+          <button onClick={() => setShowDishes(v => !v)}
+            className="flex w-full cursor-pointer items-center justify-between rounded-2xl p-4 transition-colors hover:bg-neutral-50"
+            style={{ border: "1px solid #e5e5e5" }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: "#171717" }}>מחירי מסעדות ומנות מומלצות</span>
+            {showDishes ? <ChevronUp className="h-5 w-5 text-neutral-400" /> : <ChevronDown className="h-5 w-5 text-neutral-400" />}
+          </button>
+          {showDishes && (
+            <div className="mt-3 space-y-3">
+              {DAYS.flatMap(d => d.events)
+                .filter(e => e.type === "food" && e.dishes && e.dishes.length > 0)
+                .map((e, i) => (
+                  <div key={e.label + i} className="rounded-2xl p-4" style={{ border: "1px solid #f0f0f0" }}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <p style={{ fontSize: 15, fontWeight: 800, color: "#171717" }}>{e.label.replace(/^ארוחת (בוקר|צהריים|ערב) — /, "")}</p>
+                      {e.costPerPersonEUR != null && (
+                        <span style={{ fontSize: 11, color: "#a3a3a3" }}>≈ {fmtMoney(e.costPerPersonEUR)} לאדם</span>
+                      )}
+                    </div>
+                    <div className="space-y-2 mt-2">
+                      {(e.dishes as Dish[]).map(d => (
+                        <div key={d.name} className="rounded-xl p-2.5" style={{ background: "#fafafa" }}>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{d.name}</span>
+                            {d.priceEUR != null ? (
+                              <>
+                                <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 800, background: "#171717", color: "#fff" }}>{fmtMoney(d.priceEUR)}</span>
+                                <StatusChip status={d.priceStatus ?? "estimated"} />
+                              </>
+                            ) : <StatusChip status="unknown" />}
+                          </div>
+                          <p style={{ fontSize: 11, color: "#a3a3a3", marginTop: 3 }}>כמות מומלצת למשפחה: {dishQtyNote(d.name)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    {e.costFamilyEUR != null && e.costFamilyEUR > 0 && (
+                      <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: "#f0f0f0" }}>
+                        <span style={{ fontSize: 12, color: "#525252" }}>סה"כ ארוחה משוער (3 אנשים)</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: "#171717" }}>{fmtMoney(e.costFamilyEUR)}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              <p style={{ fontSize: 11, color: "#a3a3a3", lineHeight: 1.6 }}>
+                רוב מחירי המנות הבודדות מסומנים 🟡 משוער — התפריטים המדויקים של המסעדות הקטנות לא היו זמינים לחיפוש עם מחירים פר-מנה. הטווח הכללי לאדם בכל מסעדה (למעלה) מבוסס על מחקר שוק רחב יותר, ועדיין ריאלי גם אם המנה הבודדת לא מאומתת.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Girls' shopping budget ── */}
+        <div className="rounded-3xl p-5" style={{ border: "1px solid #f0f0f0" }}>
+          <div className="mb-3 flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" style={{ color: "#ec4899" }} />
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#171717" }}>תקציב קניות לבנות</h2>
+          </div>
+          <p style={{ fontSize: 13, color: "#525252", lineHeight: 1.6, marginBottom: 12 }}>
+            מחקר מחירים אמיתי: חולצת בסיס ב-Zara היא <strong>€9.95–15.95</strong> (מאומת, אתר Zara הרשמי, 2026) · H&M דומה בערך, קצת זול יותר (<strong>~€7–12</strong>, משוער) ·
+            צמידים בדוכני עיר עתיקה נעים בין <strong>€8.50–25</strong> בחנויות תיירים/בוטיק (מאומת) — אך דוכני רחוב זולים בהרבה קיימים בדרך כלל, ומחיריהם לא אותרו במפורש (משוער €3–8).
+          </p>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {[
+              { label: "Low",       ils: 200, color: "#a3a3a3" },
+              { label: "Realistic", ils: 500, color: "#16a34a" },
+              { label: "Comfortable", ils: 800, color: "#0284c7" },
+            ].map(t => (
+              <div key={t.label} className="rounded-2xl p-3 text-center" style={{ border: `1.5px solid ${t.color}33`, background: `${t.color}0d` }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: t.color }}>{t.label}</p>
+                <p style={{ fontSize: 18, fontWeight: 900, color: "#171717", marginTop: 4 }}>₪{t.ils}</p>
+                <p style={{ fontSize: 10, color: "#a3a3a3" }}>≈ {fmtEur(t.ils / EUR_TO_ILS)}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-2xl p-4" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+            <p style={{ fontSize: 14, fontWeight: 800, color: "#15803d" }}>✅ ₪{GIRLS_SHOPPING_BUDGET_ILS} לשתי הבנות יחד: ריאלי — ואף עם רווח</p>
+            <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.7, marginTop: 6 }}>
+              ₪{GIRLS_SHOPPING_BUDGET_ILS} (≈ {fmtEur(GIRLS_SHOPPING_BUDGET_ILS / EUR_TO_ILS)}) נמצא מעל טווח ה-&quot;Realistic&quot; ומתקרב ל-&quot;Comfortable&quot; שלמעלה, בהנחה שקונים ברשתות
+              כמו Zara/Bershka/H&M/ThriftIT ולא בבוטיקים היקרים בעיר העתיקה. חלוקה מוצעת (2-3 חולצות + מכנס אחד לכל בת, כמה צמידים זולים, מזכרות קטנות):
+              כ-€130–170 (₪450–600) לשתיהן ביחד — משאיר כ-₪400–550 רזרבה לקניות ספונטניות או הפתעות.
+            </p>
+            <p style={{ fontSize: 12, color: "#166534", lineHeight: 1.7, marginTop: 6 }}>
+              <strong>איך להישאר בתקציב:</strong> העדיפו את הרשתות (Zara/Bershka/H&M) ואת ThriftIT ליד המלון על פני דוכני תכשיטים בעיר העתיקה — שם צמיד יכול לעלות €20-25, פי 3-5 מדוכן רחוב פשוט. קבעו "תקרה לפריט" מראש (למשל חולצה עד ₪50, צמיד עד ₪25) לפני שיוצאים.
+            </p>
           </div>
         </div>
 

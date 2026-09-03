@@ -7,8 +7,9 @@ import {
   Clock, AlertCircle, Leaf, Music, BookOpen, Telescope,
   ChevronDown, ChevronUp, ExternalLink, Sparkles,
   Eye, Guitar, Disc, PawPrint, Hourglass, RefreshCw,
-  ShieldAlert, ShieldCheck,
+  ShieldAlert, ShieldCheck, Wallet,
 } from "lucide-react";
+import { fmtMoney, ils, type PriceStatus, STATUS_LABEL, STATUS_COLOR } from "@/lib/currency";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 // Noam (13.5): Astronomy, Harry Potter, Rock/Guitars, Grunge Fashion
@@ -20,7 +21,7 @@ import {
 // "confirmed" means the restaurant itself (menu label, allergen sheet, staff
 // statement) or unambiguous review evidence backs the claim — NOT inferred
 // from the dish's name/description/category alone.
-interface Dish {
+export interface Dish {
   name: string;
   description: string;
   vegan: "confirmed" | "uncertain";
@@ -28,9 +29,11 @@ interface Dish {
   allergyConfidence: "high" | "medium" | "low";
   whyRecommended: string;
   customerFeedback?: string; // real review summary — omitted if none exists, never invented
+  priceEUR?: number;         // per-dish price in € — omit if truly unknown
+  priceStatus?: PriceStatus; // confirmed / estimated / unknown
 }
 
-interface Event {
+export interface Event {
   time: string;
   label: string;
   detail: string;
@@ -55,6 +58,10 @@ interface Event {
   bookingInfo?: string;     // פרטי ההזמנה המאושרת (תאריך, שעה, מס' אורחים, סטטוס)
   dishes?: Dish[];          // מנות ספציפיות שנחקרו ומומלצות במסעדה הזו
   dishesNote?: string;      // כשלא נמצאה מנה ספציפית מאומתת — הסבר כן במקום המצאה
+  costCategory?: "activities" | "transport" | "food" | "shopping" | "other"; // לחישוב תקציב
+  costFamilyEUR?: number;   // עלות כוללת ל-3 אנשים ב-€ (0/undefined = חינם) — זהו המספר שנכנס לחישובים
+  costPerPersonEUR?: number; // עלות לאדם ב-€, לתצוגה בלבד (לא תמיד = costFamilyEUR/3, כי לילדות לרוב חינם באטרקציות)
+  costStatus?: PriceStatus; // מאומת / משוער / לא ידוע
   noamScore?: number;       // 1-10 — Astronomy, HP, Rock, Grunge
   maayanScore?: number;     // 1-10 — K-Pop, Animals, Shopping, Dance
   familyScore?: number;     // 1-10 — shared experience quality
@@ -72,7 +79,7 @@ interface Event {
   primaryFor?: "noam" | "maayan" | "family";
 }
 
-interface DaySummary {
+export interface DaySummary {
   safety: "🟢" | "🟡" | "🔴";
   safetyNote: string;
   foodSafety: "🟢" | "🟡" | "🔴";
@@ -91,7 +98,7 @@ const NOT_FULLY_VEGAN =
   "לא מסעדה טבעונית לחלוטין. יש לוודא את נושא אלרגיית החלב והימנעות מזיהום צולב ישירות מול הצוות לפני ההזמנה.";
 
 // ─── Itinerary ────────────────────────────────────────────────────────────────
-const DAYS: {
+export const DAYS: {
   day: number; date: string; dayLabel: string; title: string; subtitle: string;
   color: string; bg: string;
   noamHighlight: string; maayanHighlight: string; familyHighlight: string;
@@ -126,6 +133,7 @@ const DAYS: {
         noamNote: "הרגע הראשון ברודוס — ים כחול מהחלון",
         maayanNote: "מסע מתחיל! ציפייה לטווסים ולקניות",
         tip: "מוניות רשמיות כחולות-כהות עם גג לבן, בתחנה הרשמית מחוץ ליציאה. בקיץ לפעמים גובים €30–40 — בקשו מונה או מחיר קבוע מראש.",
+        costCategory: "transport", costFamilyEUR: 30, costPerPersonEUR: 10, costStatus: "estimated",
       },
       {
         time: "07:45",
@@ -185,6 +193,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מוגדרת כטבעונית באופן מפורש בתפריט המסעדה, לא רק תיאור כללי",
             customerFeedback: "מבקרים תיארו כ'רך וטעים', צוין כמנה בולטת בביקורות",
+            priceEUR: 7, priceStatus: "estimated",
           },
           {
             name: "Vegan Shakshuka (שקשוקה טבעונית)",
@@ -192,8 +201,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מסומנת טבעונית בתפריט הבוקר",
             customerFeedback: "מבקרים ציינו שנהנו ממנה 'במיוחד' בביקורות אונליין",
+            priceEUR: 8, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 30, costPerPersonEUR: 10, costStatus: "estimated",
       },
       {
         time: "10:15",
@@ -237,8 +248,10 @@ const DAYS: {
             vegan: "uncertain", milkFree: "uncertain", allergyConfidence: "low",
             whyRecommended: "פלאפל וחומוס הם מתכונים מסורתיים נטולי חלב, ויש ל-Zaytouna קטגוריית 'תפריט טבעוני' כללית באתר — אך לא מצאנו את המנה הזו ספציפית מסומנת טבעונית בתפריט או בביקורת, והמטבח משותף עם שווארמה חלאל וחלבי מילקשייקים",
             customerFeedback: "ביקורת ציינה שהזמינו 'פיתה פלאפל עם חומוס בכ-5 יורו ומצאו את הפלאפל טעים מאוד' — התייחסות לטעם בלבד, לא לבטיחות אלרגיה",
+            priceEUR: 5, priceStatus: "confirmed",
           },
         ],
+        costCategory: "food", costFamilyEUR: 20, costPerPersonEUR: 7, costStatus: "estimated",
       },
       {
         time: "14:00",
@@ -269,10 +282,10 @@ const DAYS: {
       {
         time: "17:30",
         label: "חומות העיר העתיקה — הליכה קלה בשקיעה",
-        detail: "Old Town Walls · נוף פנורמי לים · טיול קצר וקל בלבד — כמבוקש ליום הראשון",
+        detail: "הליכה חופשית ברמת הרחוב לצד/מתחת לחומות · נוף פנורמי לים · טיול קצר וקל בלבד — כמבוקש ליום הראשון · חינם",
         icon: Camera, type: "activity",
-        tags: ["Photography", "נוף", "Sunset", "קצר וקל"],
-        cost: "€6 לאדם (משוער)",
+        tags: ["Photography", "נוף", "Sunset", "קצר וקל", "חינם"],
+        cost: "חינם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Old+Town+Walls",
         travelTime: "2 דקות הליכה",
         distancePrev: "כ-150 מ'", duration: "כ-45 דקות, הליכה שטוחה וקלה",
@@ -281,7 +294,7 @@ const DAYS: {
         noamNote: "נוף רגוע לפני הלילה — אווירה שקטה",
         maayanNote: "Golden hour photography — תמונות יפות בלי מאמץ",
         wow: true, wowLevel: 8, primaryFor: "maayan",
-        tip: "הליכה שטוחה לגמרי, בלי מדרגות משמעותיות. אם מרגישים עייפים — אפשר לוותר על זה בלי לפספס הרבה.",
+        tip: "הליכה שטוחה לגמרי, בלי מדרגות משמעותיות. אם מרגישים עייפים — אפשר לוותר על זה בלי לפספס הרבה. הערה: יש גם סיור מודרך בתשלום (€3) שהולך ממש על גבי החומות, אך פתוח רק בימי חול 12:00–15:00 — לא רלוונטי לשעה שתכננו כאן, ולכן לא כלול בתכנון.",
       },
       {
         time: "19:30",
@@ -308,6 +321,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מסומן טבעוני בתפריט המסעדה, לא רק תיאור שיווקי",
             customerFeedback: "לא נמצאה ביקורת ספציפית על הבורגר — המסעדה עצמה מדורגת 4.8/5 עם שבחים כלליים על 'תפריט יצירתי'",
+            priceEUR: 11, priceStatus: "estimated",
           },
           {
             name: "Avocado Veggie Wrap עם מוצרלה טבעונית",
@@ -315,8 +329,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "המסעדה מציינת במפורש 'vegan mozzarella' כתחליף לגבינה — לא רק 'ללא גבינה'",
             customerFeedback: "לא נמצאה ביקורת ספציפית על המנה הזו",
+            priceEUR: 9, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 36, costPerPersonEUR: 12, costStatus: "estimated",
       },
     ],
     summary: {
@@ -379,14 +395,15 @@ const DAYS: {
         noamScore: 6, maayanScore: 6, familyScore: 7,
         allergyRating: "safe", veganAvailable: true,
         tip: "יציאות בערך: 08:00, 09:00, 09:30... קחו מים ובדקו לוח זמנים עדכני ב-ktelrodou.gr לפני היציאה.",
+        costCategory: "transport", costFamilyEUR: 16.5, costPerPersonEUR: 5.5, costStatus: "confirmed",
       },
       {
         time: "09:30",
         label: "Acropolis of Lindos",
         detail: "עלייה לאקרופוליס · נוף פנורמי עצור נשימה · ילדים עד 18 (לא-אזרחי האיחוד האירופי) חינם בהצגת דרכון",
         icon: Compass, type: "activity",
-        tags: ["WOW", "ילדים חינם", "יש אפשרות בלי טיפוס"],
-        cost: "€6 לאדם (משוער) · ילדים עד 18 חינם (לאמת בקופה עם דרכון)",
+        tags: ["WOW", "ילדים חינם", "יש אפשרות בלי טיפוס", "€20 מבוגר"],
+        cost: "€20 למבוגר (מאומת — רפורמת תמחור 1.4.2025) · נועם ומעיין חינם בהצגת דרכון (לא-אזרחי האיחוד האירופי מתחת לגיל 18)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Acropolis+of+Lindos",
         travelTime: "55 דק' מ-Avalon",
         distancePrev: "בכניסה לכפר Lindos", duration: "כ-1.5 שעות",
@@ -397,7 +414,8 @@ const DAYS: {
         noamNote: "היסטוריה עתיקה + נוף = חוויה שמרגישה כמו טירת פנטזיה",
         maayanNote: "נוף עצום, תמונות מרשימות · ואם לא בא כוח לטפס — יש חמורים",
         wow: true, wowLevel: 10, primaryFor: "noam",
-        tip: "הגיעו לפני 10:00 — פחות קהל. אין הרבה צל, קחו כובע ומים.",
+        tip: "הגיעו לפני 10:00 — פחות קהל. אין הרבה צל, קחו כובע ומים. עדכון מחיר חשוב: רפורמת התמחור הארצית של אפריל 2025 העלתה את הכניסה ל-€20 (במקום המחירים הישנים של €6-10) — הכניסה החינמית לילדים עד 18 (לא-אזרחי האיחוד האירופי) עם דרכון נשארה ואף הורחבה, כך שרק מארק משלם בפועל.",
+        costCategory: "activities", costFamilyEUR: 20, costPerPersonEUR: 20, costStatus: "confirmed",
       },
       {
         time: "11:00",
@@ -459,6 +477,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "high",
             whyRecommended: "T-Veg היא מסעדה טבעונית 100% — כל המטבח נטול חלב, לא רק המנה הבודדת",
             customerFeedback: "ביקורות תיארו את הגירוס הטבעוני כ'יוצא מן הכלל', ואפילו 'בעל אכל בשר אהב אותו'",
+            priceEUR: 11, priceStatus: "estimated",
           },
           {
             name: "Vegan Caesar Salad (סלט קיסר טבעוני)",
@@ -466,8 +485,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "high",
             whyRecommended: "מטבח טבעוני מלא של המסעדה — אין חלב באתר כלל",
             customerFeedback: "תואר בביקורת כ'אחד מסלטי הקיסר הטבעוניים הטובים ביותר — פריך, קרמי ומלא בטעם'",
+            priceEUR: 9, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 36, costPerPersonEUR: 12, costStatus: "estimated",
       },
       {
         time: "16:30",
@@ -481,6 +502,7 @@ const DAYS: {
         distancePrev: "—", duration: "כ-50 דקות",
         noamScore: 4, maayanScore: 4, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
+        costCategory: "transport", costFamilyEUR: 16.5, costPerPersonEUR: 5.5, costStatus: "confirmed",
       },
       {
         time: "19:00",
@@ -520,6 +542,7 @@ const DAYS: {
         tip: "הזמינו מראש (טלפונית) לפחות יום-יומיים מראש — המקום מתמלא. בעת ההזמנה ציינו במפורש 'severe dairy allergy' ובקשו לוודא עם השף לפני ההגעה, לא רק בשולחן.",
         altOption: "Archipelagos (כיכר היפוקרטס, כ-6 דק' מהמלון) — לא דורש הזמנה קפדנית כמו Marco Polo, תפריט עם מנות טבעוניות/צמחוניות/ללא גלוטן מסומנות, נוף לחומות העיר העתיקה. גם כאן — " + NOT_FULLY_VEGAN,
         dishesNote: "לא אותרה אף מנה טבעונית ספציפית ומאומתת בתפריט. כל המנות שנמצאו בביקורות ובתיאורי התפריט (סלט פירות ים, דניס אפוי, ראגו/טאליאטה) אינן טבעוניות. המסעדה מצהירה באופן כללי ש'ניתן להתאים' לטבעונים/צמחונים/ללא גלוטן — אך זו הצהרה כללית, לא מנה מזוהה. חשוב: אל תניחו ששום מנה ברשימה בטוחה — יש לשאול את המלצר בהגעה איזו מנה ספציפית מוכנה טבעונית באותו ערב.",
+        costCategory: "food", costFamilyEUR: 96, costPerPersonEUR: 32, costStatus: "estimated",
       },
     ],
     summary: {
@@ -573,6 +596,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
             whyRecommended: "מוגדר במפורש כפריט מ'מגוון המוצרים הטבעוניים' של המאפייה",
             customerFeedback: "לא נמצאה ביקורת ספציפית על הטוסט — רק שביעות רצון כללית ('מבקרים טבעונים מצאו את המבחר מהנה')",
+            priceEUR: 5, priceStatus: "estimated",
           },
           {
             name: "חומוס (Hummus)",
@@ -580,17 +604,19 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
             whyRecommended: "מרכיב טבעי נטול חלב, מופיע ברשימת הפריטים הטבעוניים של המאפייה",
             customerFeedback: "לא נמצאה ביקורת ספציפית",
+            priceEUR: 4, priceStatus: "estimated",
           },
         ],
         tip: "בבקשה שימו לב: זו מאפייה עם משטחי הכנה משותפים לגרסאות לא-טבעוניות (כמו טוסט גבינה רגיל) — סיכון זיהום צולב גבוה יותר מבמסעדת ישיבה.",
+        costCategory: "food", costFamilyEUR: 18, costPerPersonEUR: 6, costStatus: "estimated",
       },
       {
         time: "09:30",
         label: "Filerimos — מנזר, טווסים ונוף",
-        detail: "כ-14 ק\"מ · מונית ~€12–15 (משוער) · מנזר מהמאה ה-14 · טווסים הולכים חופשי בשביל — מאומת בחיפוש עדכני, לא סיפור עירוני",
+        detail: "כ-14 ק\"מ · מונית ~€12–15 (משוער) · השביל, הטווסים והנוף — חינם לגמרי · כניסה לבניין המנזר עצמו בתשלום נפרד ואופציונלי (לא כלול בתכנון)",
         icon: Compass, type: "activity",
-        tags: ["WOW", "בעלי חיים — מאומת", "טווסים!"],
-        cost: "€3 כניסה (משוער) · €12–15 מונית הלוך (משוער)",
+        tags: ["WOW", "בעלי חיים — מאומת", "טווסים!", "השביל חינם"],
+        cost: "חינם (השביל/הטווסים/הנוף) · כניסה למנזר עצמו: €6–10 (משוער, אופציונלי, לא בתכנון)",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Filerimos+Rhodes+Greece",
         travelTime: "20 דקות מונית",
         distancePrev: "מהמלון — 14 ק\"מ", duration: "כ-1.5 שעות",
@@ -599,7 +625,8 @@ const DAYS: {
         noamNote: "מנזר היסטורי מרשים + נוף לכל האי",
         maayanNote: "טווסים הולכים חופשי בשביל — לא אגדה, מאומת בביקורות עדכניות. מעיין תשגע!",
         wow: true, wowLevel: 9, primaryFor: "maayan",
-        tip: "הטווסים מסתובבים חופשי בשביל! הגיעו ב-09:30 לפני החום. השביל שטוח ונגיש, בלי טיפוס.",
+        tip: "הטווסים מסתובבים חופשי בשביל! הגיעו ב-09:30 לפני החום. השביל שטוח ונגיש, בלי טיפוס. שימו לב: השביל עם הטווסים חינם לגמרי — משלמים רק אם בוחרים להיכנס לבניין המנזר עצמו, וזה לא חלק מהתכנון שלנו.",
+        costCategory: "transport", costFamilyEUR: 13.5, costPerPersonEUR: 4.5, costStatus: "estimated",
       },
       {
         time: "13:00",
@@ -627,16 +654,18 @@ const DAYS: {
             vegan: "uncertain", milkFree: "uncertain", allergyConfidence: "low",
             whyRecommended: "המנה עצמה קיימת ומזוהה בתפריט כאופציה טבעונית, אך המחקר מצא אי-התאמות בתיוג הטבעוני של המקום (ראו הערה למטה) — לכן לא ניתן לסמן אותה 'מאומת' באופן מלא",
             customerFeedback: "ביקורות ציינו 'מנות גדולות וטעימות'. אך ביקורת ספציפית אחרת חשפה: 'המיונז הטבעוני מכיל אבקת ביצה, והפיתות מכילות ביצים' — ממצא שמעלה ספק לגבי דיוק הסימון הטבעוני של המקום בכללותו. ביקורת נוספת ציינה שהטזטיקי (מבוסס חלב) לא תמיד מוסר כברירת מחדל.",
+            priceEUR: 9, priceStatus: "confirmed",
           },
         ],
+        costCategory: "food", costFamilyEUR: 24, costPerPersonEUR: 8, costStatus: "confirmed",
       },
       {
         time: "14:30",
         label: "Palace of the Grand Master",
         detail: "ארמון הגרנד מאסטר · ממש בעיר העתיקה, כמה דקות מ-Avalon · ילדים עד 18 (לא-אזרחי האיחוד האירופי) חינם בהצגת דרכון",
         icon: BookOpen, type: "activity",
-        tags: ["WOW", "Harry Potter", "ילדים חינם", "צמוד למלון"],
-        cost: "€8 לאדם (משוער) · ילדים עד 18 חינם (לאמת בקופה עם דרכון)",
+        tags: ["WOW", "Harry Potter", "ילדים חינם", "צמוד למלון", "€20 מבוגר"],
+        cost: "€20 למבוגר (מאומת — רפורמת תמחור 1.4.2025) · נועם ומעיין חינם בהצגת דרכון",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Palace+of+the+Grand+Master+Rhodes",
         travelTime: "2 דקות הליכה מ-Avalon",
         distancePrev: "כ-150 מ'", duration: "כ-1.5 שעות",
@@ -645,7 +674,8 @@ const DAYS: {
         noamNote: "מסדרונות אבן ארוכים, חדרי אבן — אווירת טירה עתיקה מלאה",
         maayanNote: "ארמון ציורי, תמונות יפות",
         harryPotter: true, wow: true, wowLevel: 9, primaryFor: "noam",
-        tip: "נועם ומעיין חינם עם דרכון! זה כמעט חצר אחורית של המלון — אין צורך בתכנון נסיעה.",
+        tip: "נועם ומעיין חינם עם דרכון! זה כמעט חצר אחורית של המלון — אין צורך בתכנון נסיעה. עדכון מחיר: רפורמת התמחור הארצית של אפריל 2025 העלתה את הכניסה ל-€20 (במקום המחירים הישנים של €6-8) — רק מארק משלם בפועל.",
+        costCategory: "activities", costFamilyEUR: 20, costPerPersonEUR: 20, costStatus: "confirmed",
       },
       {
         time: "16:00",
@@ -703,8 +733,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מסומן טבעוני בתפריט המסעדה. גם ארוחה מספקת אך לא כבדה מדי לפני הנסיעה למצפה",
             customerFeedback: "לא נמצאה ביקורת ספציפית על הבורגר",
+            priceEUR: 11, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 30, costPerPersonEUR: 10, costStatus: "estimated",
       },
       {
         time: "20:00",
@@ -722,6 +754,7 @@ const DAYS: {
         allergyRating: "safe", veganAvailable: true,
         astronomy: true,
         tip: "קחו סוודר קל — יושבים בחוץ בגן האסטרונומי חלק מהזמן. אין צורך בציוד מיוחד, הכל מסופק במצפה.",
+        costCategory: "transport", costFamilyEUR: 17.5, costPerPersonEUR: 5.8, costStatus: "estimated",
       },
       {
         time: "20:30",
@@ -729,9 +762,9 @@ const DAYS: {
         detail: "מצפה כוכבים מקצועי באזור Profitis Amos, פאלירקי · פועל מ-2013 · הדרכה חיה + טלסקופ Celestron C11 + מצלמת עומק אלחוטית לצילום דרך העדשה · תערוכת אסטרופוטוגרפיה וגן אסטרונומי",
         icon: Telescope, type: "activity",
         tags: ["Astronomy", "WOW", "מוזמן ומאושר", "נועם-highlight"],
-        cost: null,
+        cost: "€60 סה\"כ ל-3 אורחים (מאומת — הסכום ששולם בפועל)",
         booked: true,
-        bookingInfo: "🎟️ הוזמן — 9 בספטמבר 2026 · 21:00 · 3 אורחים · סטטוס: מאושר",
+        bookingInfo: "🎟️ הוזמן — 9 בספטמבר 2026 · 21:00 · 3 אורחים · €60 סה\"כ · סטטוס: מאושר ושולם",
         mapsUrl: "https://www.google.com/maps/search/?api=1&query=Rhodes+Observatory+Faliraki",
         travelTime: "הגעה בכוונה ב-20:30 — חצי שעה לפני תחילת המפגש",
         distancePrev: "—", duration: "כ-1.5 שעות (כולל 30 דק' הגעה מוקדמת + מפגש של כ-50 דקות)",
@@ -741,7 +774,11 @@ const DAYS: {
         noamNote: "טלסקופ מקצועי אמיתי (Celestron C11), לא רק עין חופשית — צפייה בירח, כוכבי לכת ועצמי שמיים עמוקים, כולל צילום דרך העדשה למכשיר הנייד. חוויה שתישאר כל החיים",
         maayanNote: "הדרכה חיה עם תוכנת Stellarium, תערוכת אסטרופוטוגרפיה וגן אסטרונומי בחוץ — מעניין גם למי שלא 'אוטוטו אסטרונום'",
         astronomy: true, wow: true, wowLevel: 10, primaryFor: "noam",
-        tip: "גיל מינימום באתר (לפי מקורות שונים 8–10) — מעיין (10.5) עומדת בדרישה בכל מקרה. במקרה של עננות, המצפה מקיים הרצאת אסטרונומיה מקורה במקום צפייה בטלסקופ — עדיין חוויה, רק שונה. הפעילות מאושרת ומשולמת מראש; אין צורך בפעולה נוספת מלבד הגעה בזמן.",
+        tip: "גיל מינימום באתר (לפי מקורות שונים 8–10) — מעיין (10.5) עומדת בדרישה בכל מקרה. במקרה של עננות, המצפה מקיים הרצאת אסטרונומיה מקורה במקום צפייה בטלסקופ — עדיין חוויה, רק שונה. הפעילות מאושרת; אין צורך בפעולה נוספת מלבד הגעה בזמן.",
+        costCategory: "activities", costStatus: "confirmed",
+        costFamilyEUR: 60, costPerPersonEUR: 20,
+        // €60 total for 3 guests — the actual amount paid, confirmed by the user
+        // from their booking (Sept 9 2026, 21:00). No longer an estimate.
       },
       {
         time: "22:00",
@@ -756,6 +793,7 @@ const DAYS: {
         noamScore: 4, maayanScore: 4, familyScore: 5,
         allergyRating: "safe", veganAvailable: true,
         tip: "חזרה מוקדמת משמעותית לעומת התכנון המקורי (22:20 בערך במקום כמעט חצות) — הודות למרחק הקצר יותר לפאלירקי לעומת פרופיטיס אליאס.",
+        costCategory: "transport", costFamilyEUR: 17.5, costPerPersonEUR: 5.8, costStatus: "estimated",
       },
     ],
     summary: {
@@ -808,6 +846,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
             whyRecommended: "פריט מזוהה במפורש כטבעוני בתפריט המאפייה",
             customerFeedback: "ביקורת חיובית: 'כמות נדיבה של חמאת בוטנים על הוופל', תואר כ'טרי ומלא בטעם'. ביקורת אחרת (כללית יותר) ציינה שוופלים וסופגניות היו 'טריים במיוחד'.",
+            priceEUR: 7, priceStatus: "estimated",
           },
           {
             name: "Vegan Guacamole Bagel (בייגל אבוקדו טבעוני)",
@@ -815,8 +854,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "low",
             whyRecommended: "פריט מזוהה במפורש כטבעוני בתפריט המאפייה",
             customerFeedback: "ביקורות מעורבות: חלק תיארו אותו כטעים, אך ביקורת ספציפית אחת ציינה שקיבלה 'חביתת חומוס טבעונית ובייגל אבוקדו יבשים מאוד' — כדאי לקחת בחשבון שהאיכות לא עקבית לפי כל הביקורות.",
+            priceEUR: 6, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 21, costPerPersonEUR: 7, costStatus: "estimated",
       },
       {
         time: "09:30",
@@ -861,6 +902,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מוזכרת במפורש כאחת מאפשרויות התפריט הטבעוניות של המסעדה. מתכון מסורתי שאינו כולל חלב מרכיביו",
             customerFeedback: "ביקורות כלליות תיארו את המטבח כ'טעים ואותנטי' — לא נמצאה ביקורת נקודתית על המנה הזו עצמה",
+            priceEUR: 7, priceStatus: "estimated",
           },
           {
             name: "סלט חצילים (Eggplant Salad / Melitzanosalata)",
@@ -868,6 +910,7 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מוזכרת במפורש כאחת מאפשרויות התפריט הטבעוניות של המסעדה",
             customerFeedback: "לא נמצאה ביקורת ספציפית על המנה הזו",
+            priceEUR: 6, priceStatus: "estimated",
           },
           {
             name: "חומוס (Hummus)",
@@ -875,8 +918,10 @@ const DAYS: {
             vegan: "confirmed", milkFree: "confirmed", allergyConfidence: "medium",
             whyRecommended: "מרכיב טבעי נטול חלב, מוצג בתפריט הטבעוני",
             customerFeedback: "ביקורת ציינה 'טעים, אך מנת החומוס הייתה קטנה יחסית למחיר' — הערה על כמות, לא על טעם או בטיחות",
+            priceEUR: 6, priceStatus: "estimated",
           },
         ],
+        costCategory: "food", costFamilyEUR: 39, costPerPersonEUR: 13, costStatus: "estimated",
       },
       {
         time: "12:15",
@@ -905,6 +950,7 @@ const DAYS: {
         noamScore: 3, maayanScore: 3, familyScore: 4,
         allergyRating: "safe", veganAvailable: true,
         tip: "הזמינו מונית דרך קבלת המלון מראש! ודאו מונה או מחיר קבוע.",
+        costCategory: "transport", costFamilyEUR: 30, costPerPersonEUR: 10, costStatus: "estimated",
       },
       {
         time: "15:10",
@@ -934,6 +980,58 @@ const DAYS: {
     },
   },
 ];
+
+// ─── Budget model ───────────────────────────────────────────────────────────────
+// Single source of truth for cost math — both /planner and /budget import from
+// here so every total in the app is computed the same way, from the same data.
+export interface DayCost {
+  activities: number; transport: number; food: number; shopping: number; other: number;
+  total: number;
+  confirmed: number; estimated: number; unknown: number; // split of `total` by status
+}
+
+export function computeDayCost(day: typeof DAYS[number]): DayCost {
+  const c: DayCost = { activities: 0, transport: 0, food: 0, shopping: 0, other: 0, total: 0, confirmed: 0, estimated: 0, unknown: 0 };
+  for (const e of day.events) {
+    const amt = e.costFamilyEUR ?? 0;
+    if (amt <= 0) continue;
+    const cat = e.costCategory ?? "other";
+    c[cat] += amt;
+    c.total += amt;
+    const status = e.costStatus ?? "estimated";
+    c[status] += amt;
+  }
+  return c;
+}
+
+export function computeTripCost() {
+  const perDay = DAYS.map(d => ({ day: d.day, title: d.title, cost: computeDayCost(d) }));
+  const totals: DayCost = { activities: 0, transport: 0, food: 0, shopping: 0, other: 0, total: 0, confirmed: 0, estimated: 0, unknown: 0 };
+  for (const { cost } of perDay) {
+    (Object.keys(totals) as (keyof DayCost)[]).forEach(k => { totals[k] += cost[k]; });
+  }
+  return { perDay, totals };
+}
+
+// Girls' shopping budget — kept here so /budget and /planner agree on the same figure.
+export const GIRLS_SHOPPING_BUDGET_ILS = 1000;
+
+// Breakfast / lunch / dinner totals across the whole trip — derived from the
+// same event data (by label prefix) rather than hand-tallied, so it can never
+// drift out of sync with the day-by-day or dish-level numbers above.
+export function computeMealTypeTotals() {
+  const totals = { breakfast: 0, lunch: 0, dinner: 0 };
+  for (const day of DAYS) {
+    for (const e of day.events) {
+      if (e.type !== "food" || !e.costFamilyEUR) continue;
+      if (e.label.startsWith("ארוחת בוקר")) totals.breakfast += e.costFamilyEUR;
+      else if (e.label.startsWith("ארוחת צהריים")) totals.lunch += e.costFamilyEUR;
+      else if (e.label.startsWith("ארוחת ערב")) totals.dinner += e.costFamilyEUR;
+    }
+  }
+  const tripFood = totals.breakfast + totals.lunch + totals.dinner;
+  return { ...totals, tripFood, dailyAverage: tripFood / DAYS.length };
+}
 
 // ─── Discovery data ────────────────────────────────────────────────────────────
 const MUSIC_DISCOVERY = [
@@ -1215,6 +1313,11 @@ function EventRow({ e }: { e: any }) {
                     {e.dishes.map((d: Dish) => (
                       <div key={d.name} className="flex flex-wrap items-center gap-1.5">
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#171717" }}>{d.name}</span>
+                        {d.priceEUR != null && (
+                          <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 800, background: "#171717", color: "#fff" }}>
+                            {fmtMoney(d.priceEUR)}{d.priceStatus === "estimated" ? " (משוער)" : ""}
+                          </span>
+                        )}
                         <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 700, background: d.vegan === "confirmed" ? "#dcfce7" : "#f5f5f5", color: d.vegan === "confirmed" ? "#15803d" : "#737373" }}>
                           {d.vegan === "confirmed" ? "🌱 טבעוני" : "🌱 טבעוני לא ודאי"}
                         </span>
@@ -1342,7 +1445,17 @@ function EventRow({ e }: { e: any }) {
                       {e.dishes.map((d: Dish) => (
                         <div key={d.name} className="rounded-lg p-2" style={{ background: "#fff", border: "1px solid #e0f2fe" }}>
                           <p style={{ fontSize: 13, fontWeight: 700, color: "#171717" }}>{d.name}</p>
-                          <p style={{ fontSize: 11, color: "#525252", marginTop: 2, lineHeight: 1.5 }}>{d.description}</p>
+                          {d.priceEUR != null && (
+                            <div className="mt-1">
+                              <span className="rounded-full px-2 py-0.5" style={{ fontSize: 11, fontWeight: 800, background: "#171717", color: "#fff" }}>
+                                {fmtMoney(d.priceEUR)}
+                              </span>
+                              <span style={{ fontSize: 10, color: "#a3a3a3", marginRight: 6 }}>
+                                {STATUS_LABEL[d.priceStatus ?? "estimated"]} · מחיר למנה בודדת
+                              </span>
+                            </div>
+                          )}
+                          <p style={{ fontSize: 11, color: "#525252", marginTop: 4, lineHeight: 1.5 }}>{d.description}</p>
                           <div className="mt-1.5 flex flex-wrap gap-1.5">
                             <span className="rounded-full px-2 py-0.5" style={{ fontSize: 10, fontWeight: 700, background: d.vegan === "confirmed" ? "#dcfce7" : "#f5f5f5", color: d.vegan === "confirmed" ? "#15803d" : "#737373" }}>
                               טבעוני: {d.vegan === "confirmed" ? "מאומת" : "לא ודאי"}
@@ -1390,11 +1503,17 @@ function EventRow({ e }: { e: any }) {
 }
 
 // ─── Day summary card ──────────────────────────────────────────────────────────
-function DaySummaryCard({ summary }: { summary: DaySummary }) {
+function DaySummaryCard({ summary, cost }: { summary: DaySummary; cost: DayCost }) {
   const statusRow = (icon: string, label: string, value: string) => (
     <div className="flex items-center justify-between py-2" style={{ borderBottom: "1px solid #f8f8f8" }}>
       <span style={{ fontSize: 13, color: "#525252" }}>{icon} {label}</span>
       <span style={{ fontSize: 15 }}>{value}</span>
+    </div>
+  );
+  const costRow = (label: string, val: number) => val > 0 && (
+    <div key={label} className="flex items-center justify-between">
+      <span style={{ fontSize: 11, color: "#737373" }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "#171717" }}>{fmtMoney(val)}</span>
     </div>
   );
   return (
@@ -1414,6 +1533,29 @@ function DaySummaryCard({ summary }: { summary: DaySummary }) {
         <p style={{ fontSize: 12, color: "#7c3aed" }}><strong>נועם צפויה לאהוב:</strong> {summary.noamWillLove}</p>
         <p style={{ fontSize: 12, color: "#ec4899" }}><strong>מעיין צפויה לאהוב:</strong> {summary.maayanWillLove}</p>
       </div>
+
+      {/* Daily cost breakdown — family total (3 people), € + ₪ */}
+      <div className="mt-3 rounded-xl p-3" style={{ background: "#fafafa" }}>
+        <div className="mb-2 flex items-center gap-1.5">
+          <Wallet className="h-3.5 w-3.5" style={{ color: "#171717" }} />
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#171717" }}>עלות משוערת ליום (ל-3 אנשים)</span>
+        </div>
+        <div className="space-y-1">
+          {costRow("אטרקציות", cost.activities)}
+          {costRow("תחבורה", cost.transport)}
+          {costRow("אוכל", cost.food)}
+          {costRow("קניות", cost.shopping)}
+          {costRow("אחר", cost.other)}
+        </div>
+        <div className="mt-2 flex items-center justify-between border-t pt-2" style={{ borderColor: "#e5e5e5" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "#171717" }}>סה"כ ליום</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: "#171717" }}>{fmtMoney(cost.total)}</span>
+        </div>
+        <p style={{ fontSize: 10, color: "#a3a3a3", marginTop: 4 }}>
+          מאומת: {fmtMoney(cost.confirmed)} · משוער: {fmtMoney(cost.estimated)}
+        </p>
+      </div>
+
       <div className="mt-3 flex items-start gap-2 rounded-xl p-2.5" style={{ background: "#fafafa" }}>
         <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#737373" }} />
         <span style={{ fontSize: 11, color: "#737373", lineHeight: 1.5 }}>{summary.safetyNote}</span>
@@ -1668,7 +1810,7 @@ function AstronomySection() {
         <div className="mt-2 space-y-4 rounded-2xl p-5" style={{ background: "#0f172a", border: "1px solid #1e293b" }}>
           <div className="rounded-xl p-3" style={{ background: "#052e16", border: "1px solid #166534" }}>
             <p style={{ fontSize: 13, fontWeight: 800, color: "#4ade80" }}>🎟️ ההזמנה מאושרת</p>
-            <p style={{ fontSize: 12, color: "#bbf7d0", marginTop: 3 }}>9 בספטמבר 2026 · 21:00 · 3 אורחים · סטטוס: מאושר. אין צורך לתאם שוב — רק להגיע בזמן.</p>
+            <p style={{ fontSize: 12, color: "#bbf7d0", marginTop: 3 }}>9 בספטמבר 2026 · 21:00 · 3 אורחים · €60 סה"כ (מאומת) · סטטוס: מאושר ושולם. אין צורך לתאם שוב — רק להגיע בזמן.</p>
           </div>
           <p style={{ fontSize: 13, fontWeight: 800, color: "#93c5fd" }}>מה זה Rhodes Observatory?</p>
           {[
@@ -1811,7 +1953,7 @@ export default function PlannerPage() {
         </div>
 
         {/* Day summary */}
-        <DaySummaryCard summary={day.summary} />
+        <DaySummaryCard summary={day.summary} cost={computeDayCost(day)} />
 
         {/* Discovery sections */}
         <AstronomySection />
